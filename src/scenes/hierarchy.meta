@@ -1,0 +1,30 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "level intro 0",
+      "targetTime": 1.85
+    },
+    {
+      "name": "level intro 1",
+      "targetTime": 2.85
+    },
+    {
+      "name": "level intro 2",
+      "targetTime": 3.85
+    },
+    {
+      "name": "level intro 3",
+      "targetTime": 4.85
+    },
+    {
+      "name": "level intro 4",
+      "targetTime": 5.85
+    },
+    {
+      "name": "level intro 5",
+      "targetTime": 6.85
+    }
+  ],
+  "seed": 49021
+}

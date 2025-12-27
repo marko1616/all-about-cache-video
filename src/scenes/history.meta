@@ -1,0 +1,26 @@
+{
+  "version": 0,
+  "timeEvents": [
+    {
+      "name": "Intro hierarchic done",
+      "targetTime": 7.499999999999999
+    },
+    {
+      "name": "Intro map strategy done",
+      "targetTime": 9
+    },
+    {
+      "name": "Intro replace strategy done",
+      "targetTime": 11
+    },
+    {
+      "name": "Intro allocation strategy done",
+      "targetTime": 12
+    },
+    {
+      "name": "Intro cache coherence done",
+      "targetTime": 14
+    }
+  ],
+  "seed": 1810958599
+}
