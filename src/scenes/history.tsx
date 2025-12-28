@@ -56,7 +56,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[0]}
       radius={4}
-      points={[[-450, -215], [-250, -195]]}
+      points={[[-742.5, -354.75], [-412.5, -321.75]]}
       progress={0}
     />
   );
@@ -71,7 +71,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[1]}
       radius={4}
-      points={[[30, -630], [530, -610]]}
+      points={[[49.5, -1039.5], [874.5, -1006.5]]}
       progress={0}
     />
   );
@@ -82,7 +82,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[2]}
       radius={4}
-      points={[[5, -605], [530, -590]]}
+      points={[[8.25, -998.25], [874.5, -973.5]]}
       progress={0}
     />
   );
@@ -93,7 +93,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[3]}
       radius={4}
-      points={[[5, -585], [450, -570]]}
+      points={[[8.25, -965.25], [742.5, -940.5]]}
       progress={0}
     />
   );
@@ -108,7 +108,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[4]}
       radius={4}
-      points={[[-525, 65], [-15, 80]]}
+      points={[[-866.25, 107.25], [-24.75, 132]]}
       progress={0}
     />
   );
@@ -119,7 +119,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[5]}
       radius={4}
-      points={[[-525, 85], [-15, 100]]}
+      points={[[-866.25, 140.25], [-24.75, 165]]}
       progress={0}
     />
   );
@@ -130,7 +130,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[6]}
       radius={4}
-      points={[[-525, 105], [-15, 120]]}
+      points={[[-866.25, 173.25], [-24.75, 198]]}
       progress={0}
     />
   );
@@ -141,7 +141,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[7]}
       radius={4}
-      points={[[-525, 125], [-430, 140]]}
+      points={[[-866.25, 206.25], [-709.5, 231]]}
       progress={0}
     />
   );
@@ -156,7 +156,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[8]}
       radius={4}
-      points={[[270, -526], [525, -510]]}
+      points={[[445.5, -867.9], [866.25, -841.5]]}
       progress={0}
     />
   );
@@ -167,7 +167,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[9]}
       radius={4}
-      points={[[5, -505], [315, -490]]}
+      points={[[8.25, -833.25], [519.75, -808.5]]}
       progress={0}
     />
   );
@@ -182,7 +182,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[10]}
       radius={4}
-      points={[[95, -470], [530, -455]]}
+      points={[[156.75, -775.5], [874.5, -750.75]]}
       progress={0}
     />
   );
@@ -193,7 +193,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[11]}
       radius={4}
-      points={[[5, -450], [530, -435]]}
+      points={[[8.25, -742.5], [874.5, -717.75]]}
       progress={0}
     />
   );
@@ -204,7 +204,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[12]}
       radius={4}
-      points={[[5, -430], [530, -415]]}
+      points={[[8.25, -709.5], [874.5, -684.75]]}
       progress={0}
     />
   );
@@ -215,7 +215,7 @@ export default makeScene2D(function* (view) {
       compositeOperation={'multiply'}
       ref={markerRefList[13]}
       radius={4}
-      points={[[5, -410], [320, -395]]}
+      points={[[8.25, -676.5], [528, -651.75]]}
       progress={0}
     />
   );

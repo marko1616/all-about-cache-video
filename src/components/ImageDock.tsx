@@ -3,7 +3,7 @@ import { all, waitFor } from '@motion-canvas/core/lib/flow';
 import { createRef, map, Reference, tween, easeOutBack, easeInBack, easeInOutCubic } from '@motion-canvas/core';
 
 const DOCKER_SCALE = 0.40;
-const FOCUS_SCALE = 1.00;
+const FOCUS_SCALE = 1.65;
 const DOCK_RANGE = [0.45, 0.55];
 const ROTATION_RANGE = [-45, 45];
 
@@ -43,7 +43,7 @@ export class ImageDock extends Layout {
         <Spline
           ref={this.spline}
           lineWidth={4}
-          points={[[-1400, 1200], [0, 700], [1400, 1200]]}
+          points={[[-1400, 1200], [0, 650], [1400, 1200]]}
           smoothness={0.6}
           opacity={0}
         />
@@ -63,7 +63,7 @@ export class ImageDock extends Layout {
 
   public *intro() {
     const targetPoints = getDistributionPoints(this.imageRefs.length, DOCK_RANGE[0], DOCK_RANGE[1]);
- 
+
     yield* all(
       ...this.imageRefs.map((ref, index) => {
         const targetT = targetPoints[index];
@@ -73,7 +73,7 @@ export class ImageDock extends Layout {
             const eased = easeOutBack(value);
             const currentT = map(0, targetT, eased);
             const transform = getCurveTransform(that.spline(), currentT);
-         
+       
             ref().position(transform.position);
             ref().rotation(transform.rotation);
             ref().scale(map(0, DOCKER_SCALE, eased));
@@ -100,7 +100,7 @@ export class ImageDock extends Layout {
       ...otherRefs.map((ref, i) => {
         const targetT = newDockPoints[i];
         const transform = getCurveTransform(this.spline(), targetT);
-     
+   
         ref().zIndex(i);
 
         return all(
@@ -139,16 +139,16 @@ export class ImageDock extends Layout {
     yield* all(
       ...this.imageRefs.map((ref, index) => {
         const startT = startPoints[index];
-     
+   
         return (function* (that) {
           yield* waitFor((that.imageRefs.length - 1 - index) * 0.2);
-       
+     
           yield* tween(1.6, value => {
             const eased = easeInBack(value);
 
             const currentT = map(startT, 0, eased);
             const transform = getCurveTransform(that.spline(), currentT);
-         
+       
             ref().position(transform.position);
             ref().rotation(transform.rotation);
             ref().scale(map(DOCKER_SCALE, 0, eased));

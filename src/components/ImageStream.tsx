@@ -15,13 +15,12 @@ import {
   Reference,
   tween,
   easeOutExpo,
-  easeInExpo,
   map,
   SimpleSignal,
   ColorSignal,
   PossibleColor,
 } from '@motion-canvas/core';
-import { generateStraightPathPoints } from './PathUtils';
+import { generateStraightPathPoints } from '../utils/PathUtils';
 
 export interface ImageStreamProps extends NodeProps {
   /** List of image sources to display. */
@@ -70,13 +69,13 @@ export class ImageStream extends Node {
     super(props);
     this.flyDuration = props.flyDuration ?? 1.5;
     this.interval = props.interval ?? 0.1;
- 
+
     const random = useRandom();
 
     props.images.forEach((src) => {
       const rectRef = createRef<Rect>();
       const splineRef = createRef<Spline>();
-   
+ 
       const targetRotation = random.nextInt(-5, 5);
       const startRotation = targetRotation + random.nextInt(-25, 25);
 
@@ -129,7 +128,7 @@ export class ImageStream extends Node {
       ...this.items.map((item) => {
         const r = item.rect();
         const s = item.spline();
-     
+   
         r.opacity(1);
         r.scale(startScale);
 
@@ -156,24 +155,24 @@ export class ImageStream extends Node {
 
   public *flyOut() {
     const startScale = this.imageScale();
- 
+
     yield* sequence(
       this.interval,
       ...this.items.map((item) => {
         const r = item.rect();
-     
+   
         return all(
           tween(this.flyDuration, value => {
             // Using easeInExpo for flyOut often looks better (accelerating out),
             // but easeOutExpo matches the flyIn style.
             const eased = easeOutExpo(value);
-         
+       
             // Scale down to 0
             r.scale(map(startScale, 0, eased));
-         
+       
             // Fade out
             r.opacity(map(1, 0, eased));
-         
+       
             // Add a small rotation effect on exit (e.g., -20 degrees relative to current)
             r.rotation(map(item.targetRotation, item.targetRotation - 20, eased));
           })

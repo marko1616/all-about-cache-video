@@ -23,7 +23,7 @@ import {
  */
 export function* overlayTransition(
   title: string,
-  duration: number = 0.6,
+  duration: number = 1.2,
 ): ThreadGenerator {
   const size = useScene().getSize();
   const hiddenX = size.x;
@@ -101,10 +101,10 @@ export function* overlayTransition(
 
   // Slide In Sequence
   yield* all(
-    blueX(0, duration * 2, easeInOutCubic),
-    delay(0.2, yellowX(0, duration * 2, easeInOutCubic)),
-    delay(0.4, readX(0, duration * 2, easeInOutCubic)),
-    delay(0.6, mainX(0, duration * 2, easeInOutCubic)),
+    blueX(0, duration, easeInOutCubic),
+    delay(0.1, yellowX(0, duration, easeInOutCubic)),
+    delay(0.2, readX(0, duration, easeInOutCubic)),
+    delay(0.3, mainX(0, duration, easeInOutCubic)),
   );
 
   // Hold
@@ -112,10 +112,10 @@ export function* overlayTransition(
 
   // Slide Out Sequence (Reverse order)
   yield* all(
-    mainX(hiddenX, duration * 2, easeInOutCubic),
-    delay(0.2, readX(hiddenX, duration * 2, easeInOutCubic)),
-    delay(0.4, yellowX(hiddenX, duration * 2, easeInOutCubic)),
-    delay(0.6, blueX(hiddenX, duration * 2, easeInOutCubic)),
+    mainX(hiddenX, duration, easeInOutCubic),
+    delay(0.1, readX(hiddenX, duration, easeInOutCubic)),
+    delay(0.2, yellowX(hiddenX, duration, easeInOutCubic)),
+    delay(0.3, blueX(hiddenX, duration, easeInOutCubic)),
   );
 
   endTransition();

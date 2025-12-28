@@ -26,7 +26,7 @@ export class HighlightMarker extends Rect {
     this.position(() => {
       const pts = this.points();
       if (!pts || pts.length < 2) return [0, 0];
-   
+ 
       const p1 = new Vector2(pts[0] as [number, number]);
       const p2 = new Vector2(pts[1] as [number, number]);
       return [Math.min(p1.x, p2.x), Math.max(p1.y, p2.y)];
