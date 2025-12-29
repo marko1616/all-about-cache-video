@@ -6,7 +6,7 @@ import {
   NodeProps,
   initial,
   signal,
-} from '@motion-canvas/2d';
+} from "@motion-canvas/2d";
 import {
   all,
   createRef,
@@ -19,8 +19,8 @@ import {
   SimpleSignal,
   ColorSignal,
   PossibleColor,
-} from '@motion-canvas/core';
-import { generateStraightPathPoints } from '../utils/PathUtils';
+} from "@motion-canvas/core";
+import { generateStraightPathPoints } from "../utils/PathUtils";
 
 export interface ImageStreamProps extends NodeProps {
   /** List of image sources to display. */
@@ -51,15 +51,15 @@ interface StreamItem {
 export class ImageStream extends Node {
   @initial(1)
   @signal()
-  public declare readonly imageScale: SimpleSignal<number, this>;
+  declare public readonly imageScale: SimpleSignal<number, this>;
 
-  @initial('white')
+  @initial("white")
   @signal()
-  public declare readonly rectFill: ColorSignal<this>;
+  declare public readonly rectFill: ColorSignal<this>;
 
-  @initial('white')
+  @initial("white")
   @signal()
-  public declare readonly borderColor: ColorSignal<this>;
+  declare public readonly borderColor: ColorSignal<this>;
 
   private readonly items: StreamItem[] = [];
   private readonly flyDuration: number;
@@ -75,7 +75,7 @@ export class ImageStream extends Node {
     props.images.forEach((src) => {
       const rectRef = createRef<Rect>();
       const splineRef = createRef<Spline>();
- 
+
       const targetRotation = random.nextInt(-5, 5);
       const startRotation = targetRotation + random.nextInt(-25, 25);
 
@@ -83,11 +83,7 @@ export class ImageStream extends Node {
 
       this.add(
         <>
-          <Spline
-            ref={splineRef}
-            points={points}
-            opacity={0}
-          />
+          <Spline ref={splineRef} points={points} opacity={0} />
           <Rect
             ref={rectRef}
             layout
@@ -100,21 +96,19 @@ export class ImageStream extends Node {
             opacity={0}
             position={points[0]}
             rotation={startRotation}
-            alignItems={'center'}
-            justifyContent={'center'}
+            alignItems={"center"}
+            justifyContent={"center"}
           >
-            <Img
-              src={src}
-            />
+            <Img src={src} />
           </Rect>
-        </>
+        </>,
       );
 
       this.items.push({
         rect: rectRef,
         spline: splineRef,
         targetRotation,
-        startRotation
+        startRotation,
       });
     });
   }
@@ -128,28 +122,28 @@ export class ImageStream extends Node {
       ...this.items.map((item) => {
         const r = item.rect();
         const s = item.spline();
-   
+
         r.opacity(1);
         r.scale(startScale);
 
         return all(
-          tween(this.flyDuration, value => {
+          tween(this.flyDuration, (value) => {
             const eased = easeOutExpo(value);
             const point = s.getPointAtPercentage(eased);
             r.position(point.position);
           }),
 
-          tween(this.flyDuration, value => {
+          tween(this.flyDuration, (value) => {
             const eased = easeOutExpo(value);
             r.rotation(map(item.startRotation, item.targetRotation, eased));
           }),
 
-          tween(this.flyDuration, value => {
+          tween(this.flyDuration, (value) => {
             const eased = easeOutExpo(value);
             r.scale(map(startScale, targetScale, eased));
-          })
+          }),
         );
-      })
+      }),
     );
   }
 
@@ -160,24 +154,26 @@ export class ImageStream extends Node {
       this.interval,
       ...this.items.map((item) => {
         const r = item.rect();
-   
+
         return all(
-          tween(this.flyDuration, value => {
+          tween(this.flyDuration, (value) => {
             // Using easeInExpo for flyOut often looks better (accelerating out),
             // but easeOutExpo matches the flyIn style.
             const eased = easeOutExpo(value);
-       
+
             // Scale down to 0
             r.scale(map(startScale, 0, eased));
-       
+
             // Fade out
             r.opacity(map(1, 0, eased));
-       
+
             // Add a small rotation effect on exit (e.g., -20 degrees relative to current)
-            r.rotation(map(item.targetRotation, item.targetRotation - 20, eased));
-          })
+            r.rotation(
+              map(item.targetRotation, item.targetRotation - 20, eased),
+            );
+          }),
         );
-      })
+      }),
     );
   }
 }

@@ -3,27 +3,27 @@
   "timeEvents": [
     {
       "name": "level intro 0",
-      "targetTime": 102.01984543928977
+      "targetTime": 97.8634732648717
     },
     {
       "name": "level intro 1",
-      "targetTime": 104.31726161381393
+      "targetTime": 100.61466395951489
     },
     {
       "name": "level intro 2",
-      "targetTime": 106.54495322403547
+      "targetTime": 103.00865532436679
     },
     {
       "name": "level intro 3",
-      "targetTime": 108.84760653232404
+      "targetTime": 105.45502446999024
     },
     {
       "name": "level intro 4",
-      "targetTime": 111.04922851563389
+      "targetTime": 107.65664645330008
     },
     {
       "name": "level intro 5",
-      "targetTime": 113.4185515822534
+      "targetTime": 110.20260601590537
     }
   ],
   "seed": 49021

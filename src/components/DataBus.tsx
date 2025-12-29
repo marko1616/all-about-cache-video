@@ -6,7 +6,7 @@ import {
   LayoutProps,
   initial,
   signal,
-} from '@motion-canvas/2d';
+} from "@motion-canvas/2d";
 
 import {
   createRef,
@@ -16,16 +16,13 @@ import {
   SignalValue,
   createComputed,
   ThreadGenerator,
-} from '@motion-canvas/core';
+} from "@motion-canvas/core";
 
-import {
-  Payload,
-  BusSlaveHandler,
-} from '../schemes/DataBusScheme';
+import { Payload, BusSlaveHandler } from "../schemes/DataBusScheme";
 
-import { RequestPacket, ResponsePacket } from '../schemes/PacketScheme';
+import { RequestPacket, ResponsePacket } from "../schemes/PacketScheme";
 
-import { MotionGenerator } from '../schemes/UtilScheme'
+import { MotionGenerator } from "../schemes/UtilScheme";
 
 /**
  * Configuration properties for the DataBus component.
@@ -52,40 +49,41 @@ export interface DataBusProps extends LayoutProps {
 export class DataBus extends Layout {
   @initial(400)
   @signal()
-  public declare readonly busWidth: SimpleSignal<number, this>;
+  declare public readonly busWidth: SimpleSignal<number, this>;
 
   @initial(60)
   @signal()
-  public declare readonly busHeight: SimpleSignal<number, this>;
+  declare public readonly busHeight: SimpleSignal<number, this>;
 
   @initial(20)
   @signal()
-  public declare readonly busGap: SimpleSignal<number, this>;
+  declare public readonly busGap: SimpleSignal<number, this>;
 
-  @initial('#FFFFFF')
+  @initial("#FFFFFF")
   @signal()
-  public declare readonly strokeColor: ColorSignal<this>;
+  declare public readonly strokeColor: ColorSignal<this>;
 
-  @initial('REQ (M->S)')
+  @initial("REQ (M->S)")
   @signal()
-  public declare readonly requestLabel: SimpleSignal<string, this>;
+  declare public readonly requestLabel: SimpleSignal<string, this>;
 
-  @initial('rgba(255, 255, 255, 0.5)')
+  @initial("rgba(255, 255, 255, 0.5)")
   @signal()
-  public declare readonly requestLabelFill: ColorSignal<this>;
+  declare public readonly requestLabelFill: ColorSignal<this>;
 
-  @initial('ACK (S->M)')
+  @initial("ACK (S->M)")
   @signal()
-  public declare readonly responseLabel: SimpleSignal<string, this>;
+  declare public readonly responseLabel: SimpleSignal<string, this>;
 
-  @initial('rgba(255, 255, 255, 0.5)')
+  @initial("rgba(255, 255, 255, 0.5)")
   @signal()
-  public declare readonly responseLabelFill: ColorSignal<this>;
+  declare public readonly responseLabelFill: ColorSignal<this>;
 
   private readonly requestTrack: Reference<Rect>;
   private readonly responseTrack: Reference<Rect>;
 
-  public slaveHandler: BusSlaveHandler<RequestPacket, ResponsePacket> | null = null;
+  public slaveHandler: BusSlaveHandler<RequestPacket, ResponsePacket> | null =
+    null;
 
   public constructor(props?: DataBusProps) {
     const {
@@ -103,8 +101,8 @@ export class DataBus extends Layout {
     super({
       ...layoutProps,
       layout: true,
-      direction: 'column',
-      alignItems: 'center',
+      direction: "column",
+      alignItems: "center",
       gap: busGap,
     });
 
@@ -115,14 +113,15 @@ export class DataBus extends Layout {
     if (requestLabel !== undefined) this.requestLabel(requestLabel);
     if (requestLabelFill !== undefined) this.requestLabelFill(requestLabelFill);
     if (responseLabel !== undefined) this.responseLabel(responseLabel);
-    if (responseLabelFill !== undefined) this.responseLabelFill(responseLabelFill);
+    if (responseLabelFill !== undefined)
+      this.responseLabelFill(responseLabelFill);
 
     this.requestTrack = createRef<Rect>();
     this.responseTrack = createRef<Rect>();
 
     this.add(
       <>
-        <Layout direction={'column'} alignItems={'center'}>
+        <Layout direction={"column"} alignItems={"center"}>
           <Txt
             text={this.requestLabel}
             fill={this.requestLabelFill}
@@ -137,7 +136,7 @@ export class DataBus extends Layout {
               stroke={this.strokeColor}
               lineWidth={0}
               layout={false}
-              alignItems={'center'}
+              alignItems={"center"}
             />
             <Line
               layout={false}
@@ -159,7 +158,7 @@ export class DataBus extends Layout {
             />
           </Layout>
         </Layout>
-        <Layout direction={'column'} alignItems={'center'}>
+        <Layout direction={"column"} alignItems={"center"}>
           <Layout width={() => this.busWidth()} height={() => this.busHeight()}>
             <Rect
               ref={this.responseTrack}
@@ -168,7 +167,7 @@ export class DataBus extends Layout {
               stroke={this.strokeColor}
               lineWidth={0}
               layout={false}
-              alignItems={'center'}
+              alignItems={"center"}
             />
             <Line
               layout={false}
@@ -196,7 +195,7 @@ export class DataBus extends Layout {
             fontWeight={1000}
           />
         </Layout>
-      </>
+      </>,
     );
   }
 
@@ -209,13 +208,13 @@ export class DataBus extends Layout {
    */
   public *performTransaction(
     requestPayload: Payload<RequestPacket>,
-    duration: number = 1
+    duration: number = 1,
   ): MotionGenerator<Payload<ResponsePacket>> {
     yield* this.animateTransmission(
       requestPayload,
       this.requestTrack(),
       1,
-      duration
+      duration,
     );
 
     let responsePayload: Payload<ResponsePacket>;
@@ -230,7 +229,7 @@ export class DataBus extends Layout {
       responsePayload,
       this.responseTrack(),
       -1,
-      duration
+      duration,
     );
 
     return responsePayload;
@@ -240,11 +239,11 @@ export class DataBus extends Layout {
     payload: Payload<T>,
     track: Rect,
     direction: number,
-    duration: number
+    duration: number,
   ): ThreadGenerator {
     const label = createRef<Txt>();
     const busWidth = this.busWidth();
-   
+
     const startX = (-busWidth / 2 + 40) * direction;
     const travelDistance = busWidth - 80;
 
@@ -265,8 +264,8 @@ export class DataBus extends Layout {
     yield* label().opacity(1, 0.3 * duration);
 
     yield* label().position.x(
-      startX + (travelDistance * direction),
-      1.0 * duration
+      startX + travelDistance * direction,
+      1.0 * duration,
     );
 
     yield* label().opacity(0, 0.3 * duration);
@@ -278,29 +277,38 @@ export class DataBus extends Layout {
     return createComputed(() => {
       const targetFontSize = 32;
       const text = labelSignal();
-     
+
       if (!text) return 0;
 
       const fontWeightFactor = 1.1;
       const isChinese = /[\u4e00-\u9fa5]/.test(text);
       const charWidthRatio = isChinese ? 1.0 : 0.55;
-     
-      const estimatedWidth = text.length * targetFontSize * charWidthRatio * fontWeightFactor;
+
+      const estimatedWidth =
+        text.length * targetFontSize * charWidthRatio * fontWeightFactor;
       const padding = 20;
       const threshold = estimatedWidth + padding;
-     
+
       const currentWidth = this.busWidth();
       const flickerZone = 100;
-      const flickerCount = 4;
-     
+      const flickerCount = 2;
+
       if (currentWidth < threshold) return 0;
-     
-      const progress = Math.min((currentWidth - threshold - flickerZone) / flickerZone, 1);
-      const flicker = Math.cos(progress * Math.PI * flickerCount * 2) > 0;
-      return flicker ? targetFontSize : 0;
+
+      if (this.opacity() === 1) {
+        const progress = Math.min((currentWidth - threshold) / flickerZone, 1);
+        const flicker = Math.cos(progress * Math.PI * flickerCount * 2) > 0;
+        return flicker ? targetFontSize : 0;
+      } else {
+        return targetFontSize;
+      }
     });
   }
 
-  private responseLabelFontSize = this.createLabelFontSize(() => this.responseLabel());
-  private requestLabelFontSize = this.createLabelFontSize(() => this.requestLabel());
+  private responseLabelFontSize = this.createLabelFontSize(() =>
+    this.responseLabel(),
+  );
+  private requestLabelFontSize = this.createLabelFontSize(() =>
+    this.requestLabel(),
+  );
 }

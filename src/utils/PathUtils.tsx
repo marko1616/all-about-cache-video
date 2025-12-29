@@ -1,4 +1,4 @@
-import { Vector2, Random } from '@motion-canvas/core';
+import { Vector2, Random } from "@motion-canvas/core";
 
 /**
  * Generates a straight path from a random position outside the screen to the center (0,0).
@@ -9,7 +9,7 @@ import { Vector2, Random } from '@motion-canvas/core';
 export function generateStraightPathPoints(
   random: Random,
   minDist: number = 1000,
-  maxDist: number = 1200
+  maxDist: number = 1200,
 ): Vector2[] {
   const angle = random.nextInt(0, 360) * (Math.PI / 180);
   const dist = random.nextInt(minDist, maxDist);

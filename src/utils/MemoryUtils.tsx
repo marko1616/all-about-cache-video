@@ -5,10 +5,14 @@
  * @param byteCount Number of bytes to read
  * @returns The combined value as bigint
  */
-export function readBytesLE(storage: number[], addr: number, byteCount: number): bigint {
+export function readBytesLE(
+  storage: number[],
+  addr: number,
+  byteCount: number,
+): bigint {
   let result = BigInt(0);
   for (let i = 0; i < byteCount; i++) {
-    const byteAddr = (addr + i) & 0xFF;
+    const byteAddr = (addr + i) & 0xff;
     const byteVal = BigInt(storage[byteAddr]);
     result |= byteVal << BigInt(i * 8);
   }
@@ -22,10 +26,15 @@ export function readBytesLE(storage: number[], addr: number, byteCount: number):
  * @param value The value to write
  * @param byteCount Number of bytes to write
  */
-export function writeBytesLE(storage: number[], addr: number, value: bigint, byteCount: number): void {
+export function writeBytesLE(
+  storage: number[],
+  addr: number,
+  value: bigint,
+  byteCount: number,
+): void {
   for (let i = 0; i < byteCount; i++) {
-    const byteAddr = (addr + i) & 0xFF;
-    const byteVal = Number((value >> BigInt(i * 8)) & BigInt(0xFF));
+    const byteAddr = (addr + i) & 0xff;
+    const byteVal = Number((value >> BigInt(i * 8)) & BigInt(0xff));
     storage[byteAddr] = byteVal;
   }
 }
@@ -36,10 +45,13 @@ export function writeBytesLE(storage: number[], addr: number, value: bigint, byt
  * @param byteCount Number of bytes
  * @returns Array of affected addresses (wrapped at 0xFF)
  */
-export function getAffectedAddresses(addr: number, byteCount: number): number[] {
+export function getAffectedAddresses(
+  addr: number,
+  byteCount: number,
+): number[] {
   const addresses: number[] = [];
   for (let i = 0; i < byteCount; i++) {
-    addresses.push((addr + i) & 0xFF);
+    addresses.push((addr + i) & 0xff);
   }
   return addresses;
 }

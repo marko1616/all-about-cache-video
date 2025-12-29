@@ -1,17 +1,17 @@
-import { makeScene2D } from '@motion-canvas/2d';
-import { waitFor, waitUntil, all } from '@motion-canvas/core/lib/flow';
-import { createRef } from '@motion-canvas/core';
+import { makeScene2D } from "@motion-canvas/2d";
+import { waitFor, waitUntil, all } from "@motion-canvas/core/lib/flow";
+import { createRef } from "@motion-canvas/core";
 
-import { ImageStream } from '../components/ImageStream'
-import { ImageDock } from '../components/ImageDock'
-import { HighlightMarker } from '../components/HighlightMarker'
+import { ImageStream } from "../components/ImageStream";
+import { ImageDock } from "../components/ImageDock";
+import { HighlightMarker } from "../components/HighlightMarker";
 
 // Image from Article https://doi.org/10.1109/SBAC-PAD.2011.10
-import memoryAccessVsCPUSpeedPng from '../../assets/images/memoryAccessVsCPUSpeed.png'
+import memoryAccessVsCPUSpeedPng from "../../assets/images/memoryAccessVsCPUSpeed.png";
 
 // Journal Article https://doi.org/10.1109/PGEC.1965.264263
-import slaveMemPaperPage1 from '../../assets/images/slaveMemPaperPage1.jpg';
-import slaveMemPaperPage2 from '../../assets/images/slaveMemPaperPage2.jpg';
+import slaveMemPaperPage1 from "../../assets/images/slaveMemPaperPage1.jpg";
+import slaveMemPaperPage2 from "../../assets/images/slaveMemPaperPage2.jpg";
 
 export default makeScene2D(function* (view) {
   const stream = createRef<ImageStream>();
@@ -22,18 +22,15 @@ export default makeScene2D(function* (view) {
       flyDuration={2.4}
       interval={0.16}
       scale={2}
-      rectFill={'#F5F1ED'}
-      borderColor={'#F5F1ED'}
-    />
+      rectFill={"#F5F1ED"}
+      borderColor={"#F5F1ED"}
+    />,
   );
 
   yield* stream().flyIn();
   yield* stream().flyOut();
 
-  const ArticleImages = [
-    slaveMemPaperPage2,
-    slaveMemPaperPage1,
-  ];
+  const ArticleImages = [slaveMemPaperPage2, slaveMemPaperPage1];
 
   const dockerRef = createRef<ImageDock>();
 
@@ -44,21 +41,26 @@ export default makeScene2D(function* (view) {
   yield* dockerRef().focus(1);
 
   // Create ref list, the index order perfectly matches the playback order
-  const markerRefList = Array.from({length: 14}, (_) => createRef<HighlightMarker>());
+  const markerRefList = Array.from({ length: 14 }, (_) =>
+    createRef<HighlightMarker>(),
+  );
 
   // ==========================================================
   // 1. Hierarchy - Orange
   // ==========================================================
   view.add(
     <HighlightMarker
-      fill={'#FF6B35'}
+      fill={"#FF6B35"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[0]}
       radius={4}
-      points={[[-742.5, -354.75], [-412.5, -321.75]]}
+      points={[
+        [-742.5, -354.75],
+        [-412.5, -321.75],
+      ]}
       progress={0}
-    />
+    />,
   );
 
   // ==========================================================
@@ -66,36 +68,45 @@ export default makeScene2D(function* (view) {
   // ==========================================================
   view.add(
     <HighlightMarker
-      fill={'#357DED'}
+      fill={"#357DED"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[1]}
       radius={4}
-      points={[[49.5, -1039.5], [874.5, -1006.5]]}
+      points={[
+        [49.5, -1039.5],
+        [874.5, -1006.5],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#357DED'}
+      fill={"#357DED"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[2]}
       radius={4}
-      points={[[8.25, -998.25], [874.5, -973.5]]}
+      points={[
+        [8.25, -998.25],
+        [874.5, -973.5],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#357DED'}
+      fill={"#357DED"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[3]}
       radius={4}
-      points={[[8.25, -965.25], [742.5, -940.5]]}
+      points={[
+        [8.25, -965.25],
+        [742.5, -940.5],
+      ]}
       progress={0}
-    />
+    />,
   );
 
   // ==========================================================
@@ -103,47 +114,59 @@ export default makeScene2D(function* (view) {
   // ==========================================================
   view.add(
     <HighlightMarker
-      fill={'#31D843'}
+      fill={"#31D843"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[4]}
       radius={4}
-      points={[[-866.25, 107.25], [-24.75, 132]]}
+      points={[
+        [-866.25, 107.25],
+        [-24.75, 132],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#31D843'}
+      fill={"#31D843"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[5]}
       radius={4}
-      points={[[-866.25, 140.25], [-24.75, 165]]}
+      points={[
+        [-866.25, 140.25],
+        [-24.75, 165],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#31D843'}
+      fill={"#31D843"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[6]}
       radius={4}
-      points={[[-866.25, 173.25], [-24.75, 198]]}
+      points={[
+        [-866.25, 173.25],
+        [-24.75, 198],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#31D843'}
+      fill={"#31D843"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[7]}
       radius={4}
-      points={[[-866.25, 206.25], [-709.5, 231]]}
+      points={[
+        [-866.25, 206.25],
+        [-709.5, 231],
+      ]}
       progress={0}
-    />
+    />,
   );
 
   // ==========================================================
@@ -151,25 +174,31 @@ export default makeScene2D(function* (view) {
   // ==========================================================
   view.add(
     <HighlightMarker
-      fill={'#E2ADF2'}
+      fill={"#E2ADF2"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[8]}
       radius={4}
-      points={[[445.5, -867.9], [866.25, -841.5]]}
+      points={[
+        [445.5, -867.9],
+        [866.25, -841.5],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#E2ADF2'}
+      fill={"#E2ADF2"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[9]}
       radius={4}
-      points={[[8.25, -833.25], [519.75, -808.5]]}
+      points={[
+        [8.25, -833.25],
+        [519.75, -808.5],
+      ]}
       progress={0}
-    />
+    />,
   );
 
   // ==========================================================
@@ -177,47 +206,59 @@ export default makeScene2D(function* (view) {
   // ==========================================================
   view.add(
     <HighlightMarker
-      fill={'#EA526F'}
+      fill={"#EA526F"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[10]}
       radius={4}
-      points={[[156.75, -775.5], [874.5, -750.75]]}
+      points={[
+        [156.75, -775.5],
+        [874.5, -750.75],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#EA526F'}
+      fill={"#EA526F"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[11]}
       radius={4}
-      points={[[8.25, -742.5], [874.5, -717.75]]}
+      points={[
+        [8.25, -742.5],
+        [874.5, -717.75],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#EA526F'}
+      fill={"#EA526F"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[12]}
       radius={4}
-      points={[[8.25, -709.5], [874.5, -684.75]]}
+      points={[
+        [8.25, -709.5],
+        [874.5, -684.75],
+      ]}
       progress={0}
-    />
+    />,
   );
   view.add(
     <HighlightMarker
-      fill={'#EA526F'}
+      fill={"#EA526F"}
       opacity={0.7}
-      compositeOperation={'multiply'}
+      compositeOperation={"multiply"}
       ref={markerRefList[13]}
       radius={4}
-      points={[[8.25, -676.5], [528, -651.75]]}
+      points={[
+        [8.25, -676.5],
+        [528, -651.75],
+      ]}
       progress={0}
-    />
+    />,
   );
 
   // ==========================================================
@@ -253,9 +294,8 @@ export default makeScene2D(function* (view) {
   yield* markerRefList[13]().progress(1, 2.0 / 4);
   yield* waitUntil("Intro cache coherence done");
 
-
   // End: Fade out all
-  yield* all(...markerRefList.map((item) => item().progress(0, 1.0)))
+  yield* all(...markerRefList.map((item) => item().progress(0, 1.0)));
 
   yield* dockerRef().unfocus();
 

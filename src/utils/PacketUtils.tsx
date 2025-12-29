@@ -1,100 +1,148 @@
 import {
+  ReadRequest,
+  ReadResponse,
+  WriteRequest,
+  WriteResponse,
+  InvalidateRequest,
+  CleanRequest,
+  FlushRequest,
+  ZeroRequest,
+  PrefetchRequest,
+  LineReadRequest,
+  LineReadResponse,
+  LineWriteRequest,
+  LineWriteResponse,
   RequestPacket,
   ResponsePacket,
-  ReadRequest,
-  WriteRequest,
-  ReadResponse,
-  WriteResponse,
-} from '../schemes/PacketScheme';
+} from "../schemes/PacketScheme";
 
-/**
- * Calculates the byte count from size field.
- * size=0 -> 1 byte, size=1 -> 2 bytes, size=2 -> 4 bytes, size=3 -> 8 bytes, etc.
- */
-export function getSizeInBytes(size: number): number {
-  return 1 << size; // 2^size
+// ============== Type Guards ==============
+
+export function isReadRequest(p: RequestPacket): p is ReadRequest {
+  return p.type === "read";
 }
 
-/**
- * Type guard to check if a packet is a read request.
- */
-export function isReadRequest(packet: RequestPacket): packet is ReadRequest {
-  return packet.type === 'read';
+export function isWriteRequest(p: RequestPacket): p is WriteRequest {
+  return p.type === "write";
 }
 
-/**
- * Type guard to check if a packet is a write request.
- */
-export function isWriteRequest(packet: RequestPacket): packet is WriteRequest {
-  return packet.type === 'write';
+export function isReadResponse(p: ResponsePacket): p is ReadResponse {
+  return p.type === "read";
 }
 
-/**
- * Type guard to check if a packet is a read response.
- */
-export function isReadResponse(packet: ResponsePacket): packet is ReadResponse {
-  return packet.type === 'read';
+export function isWriteResponse(p: ResponsePacket): p is WriteResponse {
+  return p.type === "write";
 }
 
-/**
- * Type guard to check if a packet is a write response.
- */
-export function isWriteResponse(packet: ResponsePacket): packet is WriteResponse {
-  return packet.type === 'write';
+export function isInvalRequest(p: RequestPacket): p is InvalidateRequest {
+  return p.type === "inval";
 }
 
-/**
- * Utility function to format an 8-bit address as hex string.
- */
+export function isCleanRequest(p: RequestPacket): p is CleanRequest {
+  return p.type === "clean";
+}
+
+export function isFlushRequest(p: RequestPacket): p is FlushRequest {
+  return p.type === "flush";
+}
+
+export function isZeroRequest(p: RequestPacket): p is ZeroRequest {
+  return p.type === "zero";
+}
+
+export function isPrefetchRequest(p: RequestPacket): p is PrefetchRequest {
+  return p.type === "prefetch";
+}
+
+export function isLineReadRequest(p: RequestPacket): p is LineReadRequest {
+  return p.type === "line_read";
+}
+
+export function isLineReadResponse(p: ResponsePacket): p is LineReadResponse {
+  return p.type === "line_read";
+}
+
+export function isLineWriteRequest(p: RequestPacket): p is LineWriteRequest {
+  return p.type === "line_write";
+}
+
+export function isLineWriteResponse(p: ResponsePacket): p is LineWriteResponse {
+  return p.type === "line_write";
+}
+
+export function isCacheManagementRequest(p: RequestPacket): boolean {
+  return ["inval", "clean", "flush", "zero", "prefetch"].includes(p.type);
+}
+
+// ============== Formatting ==============
+
 export function formatAddr(addr: number): string {
-  return '0x' + (addr & 0xFF).toString(16).toUpperCase().padStart(2, '0');
+  return "0x" + (addr & 0xff).toString(16).toUpperCase().padStart(2, "0");
 }
 
-/**
- * Utility function to format an 8-bit value as hex string.
- */
-export function formatValue(value: number): string {
-  return '0x' + (value & 0xFF).toString(16).toUpperCase().padStart(2, '0');
-}
-
-/**
- * Utility function to format a multi-byte value as hex string.
- * @param value The value to format (bigint for large values)
- * @param size The size field (0=1B, 1=2B, 2=4B, 3=8B)
- */
 export function formatMultiByteValue(value: bigint, size: number): string {
   const byteCount = getSizeInBytes(size);
-  const hexDigits = byteCount * 2;
+  const hexLen = byteCount * 2;
   const mask = (BigInt(1) << BigInt(byteCount * 8)) - BigInt(1);
-  const maskedValue = value & mask;
-  return '0x' + maskedValue.toString(16).toUpperCase().padStart(hexDigits, '0');
+  return "0x" + (value & mask).toString(16).toUpperCase().padStart(hexLen, "0");
 }
 
-/**
- * Get size suffix string for display.
- * B = Byte, W = Word, D = Dword, Q = Qword
- */
+export function formatWriteMask(mask: number, lineSize: number): string {
+  return "0b" + mask.toString(2).padStart(lineSize, "0");
+}
+
 export function getSizeSuffix(size: number): string {
-  const byteCount = getSizeInBytes(size);
-  if (byteCount === 1) return 'B';
-  if (byteCount === 2) return 'W';
-  if (byteCount === 4) return 'D';
-  if (byteCount === 8) return 'Q';
-  return `${byteCount}B`;
+  switch (size) {
+    case 0:
+      return ".B";
+    case 1:
+      return ".W";
+    case 2:
+      return ".D";
+    case 3:
+      return ".Q";
+    default:
+      return "";
+  }
 }
 
-/**
- * Mask a bigint value to the specified byte size.
- */
+export function getSizeInBytes(size: number): number {
+  return 1 << size;
+}
+
+export function formatValue(value: number): string {
+  return "0x" + (value & 0xff).toString(16).toUpperCase().padStart(2, "0");
+}
+
+// ============== Data Manipulation ==============
+
 export function maskToSize(value: bigint, size: number): bigint {
   const byteCount = getSizeInBytes(size);
   const mask = (BigInt(1) << BigInt(byteCount * 8)) - BigInt(1);
   return value & mask;
 }
 
-/**
- * Convert number to bigint safely.
- */
 export function toBigInt(value: number | bigint): bigint {
-  return typeof value === 'number' ? BigInt(value) : value;
+  return typeof value === "bigint" ? value : BigInt(value);
+}
+
+export function applyWriteMask(
+  oldData: bigint,
+  newData: bigint,
+  writeMask: number,
+  lineSize: number,
+): bigint {
+  let result = oldData;
+  for (let i = 0; i < lineSize; i++) {
+    if ((writeMask >> i) & 1) {
+      const shift = BigInt(i * 8);
+      const byteMask = BigInt(0xff) << shift;
+      result = (result & ~byteMask) | (newData & byteMask);
+    }
+  }
+  return result;
+}
+
+export function generateFullMask(byteCount: number): number {
+  return (1 << byteCount) - 1;
 }
