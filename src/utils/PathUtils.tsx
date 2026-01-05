@@ -8,8 +8,8 @@ import { Vector2, Random } from "@motion-canvas/core";
  */
 export function generateStraightPathPoints(
   random: Random,
-  minDist: number = 1000,
-  maxDist: number = 1200,
+  minDist: number = 2500,
+  maxDist: number = 3400,
 ): Vector2[] {
   const angle = random.nextInt(0, 360) * (Math.PI / 180);
   const dist = random.nextInt(minDist, maxDist);

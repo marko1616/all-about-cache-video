@@ -10,6 +10,7 @@ import {
 
 import {
   createRef,
+  createRefArray,
   sequence,
   waitFor,
   ColorSignal,
@@ -90,8 +91,8 @@ export class MemSlave extends Rect {
   private readonly listWindowRef = createRef<Rect>();
   private readonly scrollListRef = createRef<Layout>();
 
-  private readonly rowValueTexts: Txt[] = [];
-  private readonly rowRects: Rect[] = [];
+  private readonly rowValueTexts = createRefArray<Txt>();
+  private readonly rowRects = createRefArray<Rect>();
 
   private readonly overlayRef = createRef<Rect>();
 
@@ -226,7 +227,7 @@ export class MemSlave extends Rect {
                   >
                     {range(256).map((i) => (
                       <Rect
-                        ref={(el) => (this.rowRects[i] = el)}
+                        ref={this.rowRects}
                         height={this.rowHeight}
                         alignItems={"center"}
                         justifyContent={"space-between"}
@@ -242,7 +243,7 @@ export class MemSlave extends Rect {
                           text={formatAddr(i)}
                         />
                         <Txt
-                          ref={(el) => (this.rowValueTexts[i] = el)}
+                          ref={this.rowValueTexts}
                           fill={this.contentFill}
                           fontSize={40}
                           fontWeight={700}

@@ -7,11 +7,7 @@ import {
   Latex,
   Txt,
 } from "@motion-canvas/2d";
-import {
-  all,
-  waitUntil,
-  waitFor,
-} from "@motion-canvas/core/lib/flow";
+import { all, waitUntil, waitFor } from "@motion-canvas/core/lib/flow";
 import { createRef } from "@motion-canvas/core";
 import { parser as cppParser } from "@lezer/cpp";
 
@@ -54,7 +50,12 @@ export default makeScene2D(function* (view) {
         alignItems={"center"}
         gap={0}
       >
-        <Code ref={code} code={""} fontSize={0}></Code>
+        <Code
+          ref={code}
+          code={""}
+          fontSize={0}
+          fontFamily={"JetBrains Mono"}
+        ></Code>
         <Layout layout alignItems={"center"} gap={0}>
           <CpuMaster
             ref={cpu}
@@ -82,7 +83,7 @@ export default makeScene2D(function* (view) {
             offsetBits={1}
             setBits={0}
             numWays={1}
-            titlePrefix={"L1"}
+            titlePrefix={""}
             width={600}
             height={600}
             zIndex={1}
@@ -113,7 +114,7 @@ export default makeScene2D(function* (view) {
           />
         </Layout>
       </Layout>
-    </>
+    </>,
   );
 
   bus().slaveHandler = cache().getHandler();
@@ -126,32 +127,32 @@ export default makeScene2D(function* (view) {
   yield* cpu().readByte(0x1a);
   yield* waitFor(1);
 
-  waitUntil("Intro read miss done");
+  yield* waitUntil("Intro read miss done");
   yield* title().text("Read Hit", 0.5);
   yield* cpu().readByte(0x1a);
   yield* waitFor(1);
 
-  waitUntil("Intro read hit done");
+  yield* waitUntil("Intro read hit done");
   yield* title().text("Cacheline & Crossline Access", 0.5);
   yield* cpu().readWord(0x1b);
   yield* waitFor(1);
 
-  waitUntil("Intro cacheline done");
+  yield* waitUntil("Intro cacheline done");
   yield* title().text("Write Miss", 0.5);
   yield* cpu().writeByte(0x20, 0xff);
   yield* waitFor(1);
 
-  waitUntil("Intro write miss done");
+  yield* waitUntil("Intro write miss done");
   yield* title().text("Write Hit", 0.5);
   yield* cpu().writeByte(0x20, 0xff);
   yield* waitFor(1);
 
-  waitUntil("Intro write hit done");
+  yield* waitUntil("Intro write hit done");
   yield* title().text("Write Back", 0.5);
   yield* cpu().readByte(0x1a);
   yield* waitFor(1);
 
-  waitUntil("Intro write back done");
+  yield* waitUntil("Intro write back done");
   yield* title().text("Cacheline Invalidation", 0.5);
   yield* cpu().writeByte(0x1a, 0x1);
   yield* waitFor(1);
@@ -159,7 +160,7 @@ export default makeScene2D(function* (view) {
   yield* waitFor(1);
   yield* cpu().readByte(0x1a);
 
-  waitUntil("Intro cacheline invalidation done");
+  yield* waitUntil("Intro cacheline invalidation done");
   yield* title().text("Cacheline Clean", 0.5);
   yield* cpu().writeByte(0x1a, 0x1);
   yield* waitFor(1);
@@ -167,7 +168,7 @@ export default makeScene2D(function* (view) {
   yield* waitFor(1);
   yield* cpu().readByte(0x1a);
 
-  waitUntil("Intro cacheline clean done");
+  yield* waitUntil("Intro cacheline clean done");
   yield* title().text("Cacheline Flush", 0.5);
   yield* cpu().writeByte(0x1a, 0x1);
   yield* waitFor(1);
@@ -175,7 +176,7 @@ export default makeScene2D(function* (view) {
   yield* waitFor(1);
   yield* cpu().readByte(0x1a);
 
-  waitUntil("Intro cacheline flush done");
+  yield* waitUntil("Intro cacheline flush done");
   yield* title().text("Cacheline Prefetch", 0.5);
   yield* cpu().prefetch(0x20);
   yield* waitFor(1);
@@ -184,7 +185,7 @@ export default makeScene2D(function* (view) {
   // Temporal Locality (Time) - Accessing the same address
   yield* all(
     title().text("Temporal Locality", 0.5),
-    mainContainer().gap(100, 1),
+    mainContainer().gap(200, 1),
     code().fontSize(50, 1),
     code().code(
       `for(size_t i = 0; i < N; ++i) {
@@ -201,12 +202,12 @@ export default makeScene2D(function* (view) {
 
   // Spatial Locality (Space) - Accessing sequential addresses
   yield* all(
-      title().text("Spatial Locality", 0.5),
-      code().code.replace(
-        lines(1),
-        `    uint8_t data = *reinterpret_cast<uint8_t*>(BASE+i)\n`,
-        1,
-      )
+    title().text("Spatial Locality", 0.5),
+    code().code.replace(
+      lines(1),
+      `    uint8_t data = *reinterpret_cast<uint8_t*>(BASE+i)\n`,
+      1,
+    ),
   );
 
   for (var i = 0; i < 4; ++i) {
@@ -225,7 +226,7 @@ export default makeScene2D(function* (view) {
   mainContainer().insert(latex());
 
   yield* all(
-    mainContainer().gap(100, 1),
+    mainContainer().gap(200, 1),
     latex().tex("AMAT = HitTime + MissRate \\cdot MissPenalty", 1),
   );
 

@@ -1,4 +1,11 @@
-import { RectProps, Rect, Txt, initial, signal } from "@motion-canvas/2d";
+import {
+  Layout,
+  RectProps,
+  Rect,
+  Txt,
+  initial,
+  signal,
+} from "@motion-canvas/2d";
 
 import {
   createRef,
@@ -7,6 +14,8 @@ import {
   ColorSignal,
   SignalValue,
   SimpleSignal,
+  Random,
+  all,
 } from "@motion-canvas/core";
 
 import { DataBus } from "./DataBus";
@@ -34,6 +43,8 @@ import {
   PrefetchResponse,
 } from "../schemes/PacketScheme";
 
+import { ReplacementPolicy, CacheLine } from "../schemes/Cache";
+
 import {
   applyWriteMask,
   formatWriteMask,
@@ -56,25 +67,22 @@ import {
 
 import { MotionGenerator } from "../schemes/UtilScheme";
 
-/**
- * Cache line structure.
- */
-export interface CacheLine {
-  valid: boolean;
-  dirty: boolean;
-  tag: number;
-  data: bigint;
-  replaceState: any;
-}
+import { CacheAddrDecoder } from "./CacheAddrDecoder";
+import { CacheData } from "./CacheData";
 
 /**
- * Replacement policy function type.
- * Takes array of cache lines (ways) in a set, returns index to replace.
+ * Factory function to create a random replacement policy.
+ * @param random - The random number generator instance
+ * @returns A replacement policy that randomly selects a cache line to replace
  */
-export type ReplacementPolicy = (ways: CacheLine[]) => number;
+export const createRandomPolicy = (random: Random): ReplacementPolicy => {
+  return (ways: CacheLine[]) => {
+    return random.nextInt(0, ways.length);
+  };
+};
 
 /**
- * Default LRU replacement policy.
+ * LRU replacement policy.
  */
 export const LRU_POLICY: ReplacementPolicy = (ways: CacheLine[]) => {
   let minLru = Infinity;
@@ -124,16 +132,25 @@ export class Cache extends Rect {
   private readonly labelRef = createRef<Txt>();
   private readonly containerRef = createRef<Rect>();
 
+  private readonly detailContainerRef = createRef<Rect>();
+  private readonly detailLayoutRef = createRef<Layout>();
+  private readonly overlayRef = createRef<Rect>();
+
+  private readonly addrDecoderRef = createRef<CacheAddrDecoder>();
+  private readonly cacheDataRef = createRef<CacheData>();
+  private readonly cacheDataWrapperRef = createRef<CacheData>();
+
   private readonly offsetBits: number;
   private readonly setBits: number;
   private readonly numWays: number;
   private readonly numSets: number;
   private readonly lineSize: number;
-  private readonly tagBits: number;
+  private readonly _tagBits: number;
   private readonly replacementPolicy: ReplacementPolicy;
 
   private readonly cacheData: CacheLine[][];
   private lruCounter: number = 0;
+  private isDetailedMode = false;
 
   public constructor(props: CacheProps) {
     const {
@@ -155,7 +172,8 @@ export class Cache extends Rect {
       alignItems: "center",
       justifyContent: "center",
       radius: 24,
-      clip: true,
+      lineWidth: 20,
+      stroke: backgroundFill,
     });
 
     if (backgroundFill !== undefined) this.backgroundFill(backgroundFill);
@@ -170,7 +188,7 @@ export class Cache extends Rect {
     this.numWays = numWays;
     this.numSets = setBits > 0 ? 1 << setBits : 1;
     this.lineSize = 1 << offsetBits;
-    this.tagBits = 8 - offsetBits - setBits;
+    this._tagBits = 8 - offsetBits - setBits;
     this.replacementPolicy = replacementPolicy;
 
     this.cacheData = [];
@@ -216,6 +234,56 @@ export class Cache extends Rect {
             text={"IDLE"}
           />
         </Rect>
+        <Rect
+          ref={this.detailContainerRef}
+          width={() => this.width()}
+          height={() => this.height()}
+          layout={false}
+          opacity={0}
+        >
+          <Layout
+            ref={this.detailLayoutRef}
+            width={() => this.detailContainerRef().width()}
+            height={() => this.detailContainerRef().height()}
+            layout={true}
+            direction={"column"}
+            alignItems={"center"}
+            justifyContent={"start"}
+            padding={20}
+            clip
+          >
+            <CacheAddrDecoder
+              ref={this.addrDecoderRef}
+              offsetBits={this.offsetBits}
+              setBits={this.setBits}
+              width="100%"
+              margin={[20, 0]}
+            />
+            <Layout ref={this.cacheDataWrapperRef} grow={1} width={"100%"}>
+              <CacheData
+                ref={this.cacheDataRef}
+                numSets={this.numSets}
+                numWays={this.numWays}
+                lineSize={this.lineSize}
+                tagBits={this._tagBits}
+                offsetBits={this.offsetBits}
+                setBits={this.setBits}
+                stackOffset={80}
+                width={() => this.cacheDataWrapperRef().width() - 40}
+                containerHeight={() => this.cacheDataWrapperRef().height()}
+              />
+            </Layout>
+          </Layout>
+        </Rect>
+        <Rect
+          ref={this.overlayRef}
+          width={() => this.width() + 20}
+          y={() => this.height() / 2 + 10}
+          height={0}
+          fill={this.contentFill}
+          layout={false}
+          radius={this.radius}
+        />
       </>,
     );
   }
@@ -223,6 +291,200 @@ export class Cache extends Rect {
   public getLineSize(): number {
     return this.lineSize;
   }
+
+  public getDetailLayout(): Layout {
+    return this.detailLayoutRef();
+  }
+
+  // ==========================================================================
+  // Animation Routers & Helpers
+  // ==========================================================================
+
+  /**
+   * Animates the start of a request.
+   * Routes to detailed or simple animation based on mode.
+   */
+  private *animateRequestStart(
+    addr: number | undefined,
+    label: string,
+  ): MotionGenerator<void> {
+    if (this.isDetailedMode) {
+      if (addr !== undefined) {
+        // In detailed mode, update the address decoder
+        yield* this.addrDecoderRef().animateToAddress(addr, 1);
+
+        // Also focus the relevant set if we can calculate it
+        const { setIndex } = this.parseAddress(addr);
+        yield* this.cacheDataRef().focusSet(setIndex);
+      }
+    } else {
+      // In simple mode, update label and scale container
+      this.labelRef().text(label);
+      yield* this.containerRef().scale(1.03, 0.2);
+    }
+  }
+
+  /**
+   * Animates a Cache Hit.
+   */
+  private *animateHit(
+    setIndex?: number,
+    wayIndex?: number,
+  ): MotionGenerator<void> {
+    if (this.isDetailedMode) {
+      // Detailed: Highlight the Tag/Set match
+      const currentAddr = this.addrDecoderRef().address();
+
+      // Ensure the set is focused (in case it wasn't already)
+      if (setIndex !== undefined) {
+        yield* this.cacheDataRef().focusSet(setIndex);
+      }
+
+      yield* all(
+        this.addrDecoderRef().animateAddressWithHighlight(
+          currentAddr,
+          "tag",
+          1,
+        ),
+        // Highlight the specific line if indices are provided
+        setIndex !== undefined && wayIndex !== undefined
+          ? this.cacheDataRef().highlightLine(setIndex, wayIndex)
+          : waitFor(0.1),
+      );
+    } else {
+      this.labelRef().text("HIT");
+    }
+  }
+
+  /**
+   * Animates a Cache Miss.
+   */
+  private *animateMiss(): MotionGenerator<void> {
+    if (this.isDetailedMode) {
+      yield* waitFor(0.3);
+    } else {
+      this.labelRef().text("MISS");
+      yield* waitFor(0.3);
+    }
+  }
+
+  /**
+   * Animates the start of a Fetch operation.
+   */
+  private *animateFetchStart(addr: number): MotionGenerator<void> {
+    if (this.isDetailedMode) {
+      // Ensure set is focused for the incoming line
+      const { setIndex } = this.parseAddress(addr);
+      yield* this.cacheDataRef().focusSet(setIndex);
+    } else {
+      this.labelRef().text("FETCH...");
+    }
+    yield* waitFor(0.1);
+  }
+
+  /**
+   * Animates the start of a Write Back operation.
+   */
+  private *animateWriteBackStart(addr: number): MotionGenerator<void> {
+    if (this.isDetailedMode) {
+      const { setIndex } = this.parseAddress(addr);
+      yield* this.cacheDataRef().focusSet(setIndex);
+    } else {
+      // Simple mode logic
+    }
+    yield* waitFor(0.1);
+  }
+
+  /**
+   * Animates the completion of a request.
+   */
+  private *animateRequestEnd(finalLabel: string): MotionGenerator<void> {
+    if (this.isDetailedMode) {
+      // Detailed cleanup
+    } else {
+      this.labelRef().text(finalLabel);
+      yield* this.containerRef().scale(1.0, 0.2);
+      yield* waitFor(0.3);
+      this.labelRef().text("IDLE");
+    }
+  }
+
+  /**
+   * Helper to update visual state of a line in detailed mode
+   */
+  private *animateLineUpdate(
+    setIndex: number,
+    wayIndex: number,
+    line: CacheLine,
+  ): MotionGenerator<void> {
+    if (this.isDetailedMode) {
+      yield* this.cacheDataRef().updateLine(setIndex, wayIndex, line);
+    }
+  }
+
+  // ==========================================================================
+  // Mode Transformations
+  // ==========================================================================
+
+  public *transformDetailed(
+    width: number,
+    height: number,
+  ): MotionGenerator<void> {
+    this.isDetailedMode = true;
+    this.cacheDataRef().setInitialState(this.cacheData);
+
+    yield* all(
+      this.overlayRef().height(this.height() + 20, 1.0),
+      this.overlayRef().y(0, 1.0),
+    );
+
+    yield* all(
+      this.size([width, height], 1.0),
+      this.overlayRef().height(height + 20, 1.0),
+    );
+
+    this.fill("#00000000");
+    this.containerRef().opacity(0);
+    this.detailContainerRef().opacity(1);
+
+    yield* all(
+      this.overlayRef().height(0, 1.0),
+      this.overlayRef().y(height / 2 + 10, 1.0),
+    );
+  }
+
+  public *transformSimple(
+    width: number,
+    height: number,
+  ): MotionGenerator<void> {
+    this.isDetailedMode = false;
+
+    yield* all(
+      this.overlayRef().height(this.height() + 20, 1.0),
+      this.overlayRef().y(0, 1.0),
+    );
+
+    this.fill("#00000000");
+    this.detailContainerRef().opacity(0);
+    this.containerRef().opacity(1);
+    this.lineWidth(0);
+
+    yield* all(
+      this.size([width, height], 1.0),
+      this.overlayRef().height(height + 20, 1.0),
+    );
+
+    this.fill(this.backgroundFill);
+
+    yield* all(
+      this.overlayRef().height(0, 1.0),
+      this.overlayRef().y(height / 2 + 10, 1.0),
+    );
+  }
+
+  // ==========================================================================
+  // Core Logic
+  // ==========================================================================
 
   private parseAddress(addr: number): {
     tag: number;
@@ -310,6 +572,8 @@ export class Cache extends Rect {
 
     const baseAddr = this.getLineBaseAddress(tag, setIndex);
 
+    yield* this.animateFetchStart(baseAddr);
+
     const readReq: ReadRequest = {
       type: "read",
       addr: baseAddr,
@@ -333,6 +597,9 @@ export class Cache extends Rect {
     victim.data = lineData;
     this.updateReplaceState(victim);
 
+    // 4b. Update State on Fetch
+    yield* this.animateLineUpdate(setIndex, victimIdx, victim);
+
     return victim;
   }
 
@@ -343,6 +610,8 @@ export class Cache extends Rect {
     if (!line.valid || !line.dirty) return;
 
     const baseAddr = this.getLineBaseAddress(line.tag, setIndex);
+
+    yield* this.animateWriteBackStart(baseAddr);
 
     const writeReq: WriteRequest = {
       type: "write",
@@ -367,8 +636,10 @@ export class Cache extends Rect {
     id: string,
     req: InvalidateRequest,
   ): MotionGenerator<Payload<ResponsePacket>> {
-    this.labelRef().text("INVALIDATING...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    const safeAddr = req.addr !== undefined ? req.addr & 0xff : undefined;
+    yield* this.animateRequestStart(safeAddr, "INVALIDATING...");
+
+    let resultText = "";
 
     if (req.global || req.addr === undefined) {
       // Invalidate all cache lines
@@ -376,26 +647,32 @@ export class Cache extends Rect {
         for (let w = 0; w < this.numWays; w++) {
           this.cacheData[s][w].valid = false;
           this.cacheData[s][w].dirty = false;
+          yield* this.animateLineUpdate(s, w, this.cacheData[s][w]);
         }
       }
-      this.labelRef().text("ALL INVALIDATED");
+      resultText = "ALL INVALIDATED";
     } else {
       // Invalidate specific address
       const { tag, setIndex } = this.parseAddress(req.addr);
       const wayIdx = this.findLine(setIndex, tag);
-      
+
       if (wayIdx >= 0) {
+        yield* this.animateHit(setIndex, wayIdx);
         this.cacheData[setIndex][wayIdx].valid = false;
         this.cacheData[setIndex][wayIdx].dirty = false;
-        this.labelRef().text(`INVAL ${formatAddr(req.addr)}`);
+        yield* this.animateLineUpdate(
+          setIndex,
+          wayIdx,
+          this.cacheData[setIndex][wayIdx],
+        );
+        resultText = `INVAL ${formatAddr(req.addr)}`;
       } else {
-        this.labelRef().text(`INVAL MISS`);
+        yield* this.animateMiss();
+        resultText = `INVAL MISS`;
       }
     }
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(resultText);
 
     const response: InvalidateResponse = {
       type: "inval",
@@ -416,33 +693,41 @@ export class Cache extends Rect {
     id: string,
     req: CleanRequest,
   ): MotionGenerator<Payload<ResponsePacket>> {
-    this.labelRef().text("CLEANING...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    const safeAddr = req.addr !== undefined ? req.addr & 0xff : undefined;
+    yield* this.animateRequestStart(safeAddr, "CLEANING...");
+
+    let resultText = "";
 
     if (req.global || req.addr === undefined) {
       // Clean all cache lines
       for (let s = 0; s < this.numSets; s++) {
         for (let w = 0; w < this.numWays; w++) {
           yield* this.writeBackLine(this.cacheData[s][w], s);
+          yield* this.animateLineUpdate(s, w, this.cacheData[s][w]); // Update dirty bit visual
         }
       }
-      this.labelRef().text("ALL CLEANED");
+      resultText = "ALL CLEANED";
     } else {
       // Clean specific address
       const { tag, setIndex } = this.parseAddress(req.addr);
       const wayIdx = this.findLine(setIndex, tag);
-      
+
       if (wayIdx >= 0) {
+        yield* this.animateHit(setIndex, wayIdx);
         yield* this.writeBackLine(this.cacheData[setIndex][wayIdx], setIndex);
-        this.labelRef().text(`CLEAN ${formatAddr(req.addr)}`);
+        yield* this.animateLineUpdate(
+          setIndex,
+          wayIdx,
+          this.cacheData[setIndex][wayIdx],
+        );
+        resultText = `CLEAN ${formatAddr(req.addr)}`;
       } else {
-        this.labelRef().text(`CLEAN MISS`);
+        yield* this.animateMiss();
+        resultText = `CLEAN MISS`;
       }
     }
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(resultText);
 
     const response: CleanResponse = {
       type: "clean",
@@ -463,8 +748,10 @@ export class Cache extends Rect {
     id: string,
     req: FlushRequest,
   ): MotionGenerator<Payload<ResponsePacket>> {
-    this.labelRef().text("FLUSHING...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    const safeAddr = req.addr !== undefined ? req.addr & 0xff : undefined;
+    yield* this.animateRequestStart(safeAddr, "FLUSHING...");
+
+    let resultText = "";
 
     if (req.global || req.addr === undefined) {
       // Flush all cache lines
@@ -473,27 +760,33 @@ export class Cache extends Rect {
           yield* this.writeBackLine(this.cacheData[s][w], s);
           this.cacheData[s][w].valid = false;
           this.cacheData[s][w].dirty = false;
+          yield* this.animateLineUpdate(s, w, this.cacheData[s][w]);
         }
       }
-      this.labelRef().text("ALL FLUSHED");
+      resultText = "ALL FLUSHED";
     } else {
       // Flush specific address
       const { tag, setIndex } = this.parseAddress(req.addr);
       const wayIdx = this.findLine(setIndex, tag);
-      
+
       if (wayIdx >= 0) {
+        yield* this.animateHit(setIndex, wayIdx);
         yield* this.writeBackLine(this.cacheData[setIndex][wayIdx], setIndex);
         this.cacheData[setIndex][wayIdx].valid = false;
         this.cacheData[setIndex][wayIdx].dirty = false;
-        this.labelRef().text(`FLUSH ${formatAddr(req.addr)}`);
+        yield* this.animateLineUpdate(
+          setIndex,
+          wayIdx,
+          this.cacheData[setIndex][wayIdx],
+        );
+        resultText = `FLUSH ${formatAddr(req.addr)}`;
       } else {
-        this.labelRef().text(`FLUSH MISS`);
+        yield* this.animateMiss();
+        resultText = `FLUSH MISS`;
       }
     }
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(resultText);
 
     const response: FlushResponse = {
       type: "flush",
@@ -518,24 +811,26 @@ export class Cache extends Rect {
     const safeAddr = addr & 0xff;
     const { tag, setIndex } = this.parseAddress(safeAddr);
 
-    this.labelRef().text("ZEROING...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    yield* this.animateRequestStart(safeAddr, "ZEROING...");
 
-    const wayIdx = this.findLine(setIndex, tag);
+    let wayIdx = this.findLine(setIndex, tag);
     let line: CacheLine;
 
     if (wayIdx >= 0) {
+      yield* this.animateHit(setIndex, wayIdx);
       // Line exists, zero it
       line = this.cacheData[setIndex][wayIdx];
     } else {
+      yield* this.animateMiss();
       // Allocate new line
       const set = this.cacheData[setIndex];
       const victimIdx = this.replacementPolicy(set);
       line = set[victimIdx];
-      
+      wayIdx = victimIdx;
+
       // Write back old data if dirty
       yield* this.writeBackLine(line, setIndex);
-      
+
       line.tag = tag;
       line.valid = true;
     }
@@ -545,11 +840,10 @@ export class Cache extends Rect {
     line.dirty = true;
     this.updateReplaceState(line);
 
-    this.labelRef().text(`ZERO ${formatAddr(safeAddr)}`);
+    // Update visual
+    yield* this.animateLineUpdate(setIndex, wayIdx, line);
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(`ZERO ${formatAddr(safeAddr)}`);
 
     const response: ZeroResponse = {
       type: "zero",
@@ -575,28 +869,26 @@ export class Cache extends Rect {
     const safeAddr = addr & 0xff;
     const { tag, setIndex } = this.parseAddress(safeAddr);
 
-    this.labelRef().text("PREFETCHING...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    yield* this.animateRequestStart(safeAddr, "PREFETCHING...");
 
     const wayIdx = this.findLine(setIndex, tag);
+    let resultText = "";
 
     if (wayIdx >= 0) {
       // Line already in cache, just update replacement state
-      this.labelRef().text("PREFETCH HIT");
+      yield* this.animateHit(setIndex, wayIdx);
+      resultText = "PREFETCH HIT";
       const line = this.cacheData[setIndex][wayIdx];
       this.updateReplaceState(line);
+      yield* this.animateLineUpdate(setIndex, wayIdx, line); // Update replacement state visual
     } else {
       // Line not in cache, fetch it
-      this.labelRef().text("PREFETCH MISS");
-      yield* waitFor(0.3);
-      this.labelRef().text("FETCHING...");
-      yield* this.fetchLine(setIndex, tag);
-      this.labelRef().text(`PREFETCH ${formatAddr(safeAddr)}`);
+      yield* this.animateMiss();
+      yield* this.fetchLine(setIndex, tag); // fetchLine handles visual update
+      resultText = `PREFETCH ${formatAddr(safeAddr)}`;
     }
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(resultText);
 
     const response: PrefetchResponse = {
       type: "prefetch",
@@ -634,30 +926,34 @@ export class Cache extends Rect {
       displayStr = `RD${sizeSuffix} ${addrHex}`;
     }
 
-    this.labelRef().text("ACCESS...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    yield* this.animateRequestStart(safeAddr, "ACCESS...");
 
-    const wayIdx = this.findLine(setIndex, tag);
+    let wayIdx = this.findLine(setIndex, tag);
     let line: CacheLine;
 
     if (wayIdx >= 0) {
-      this.labelRef().text("HIT");
+      yield* this.animateHit(setIndex, wayIdx);
       line = this.cacheData[setIndex][wayIdx];
       this.updateReplaceState(line);
     } else {
-      this.labelRef().text("MISS");
-      yield* waitFor(0.3);
-      this.labelRef().text("FETCH...");
+      yield* this.animateMiss();
+      // fetchLine handles visual update for the new line
       line = yield* this.fetchLine(setIndex, tag);
+      // Re-find index since it might have changed or been allocated
+      wayIdx = this.findLine(setIndex, tag);
     }
 
     let responseContent: ResponsePacket;
     let responseDisplay = "";
+    let endLabel = "";
 
     if (data !== null) {
       const safeData = maskToSize(toBigInt(data), size);
       this.writeBytesToLine(line, offset, safeData, byteCount);
       line.dirty = true;
+
+      // Update visual after write
+      yield* this.animateLineUpdate(setIndex, wayIdx, line);
 
       const writeResponse: WriteResponse = {
         type: "write",
@@ -667,9 +963,12 @@ export class Cache extends Rect {
       };
       responseContent = writeResponse;
       responseDisplay = `WR${sizeSuffix} OK`;
-      this.labelRef().text("WROTE");
+      endLabel = "WROTE";
     } else {
       const value = this.readBytesFromLine(line, offset, byteCount);
+
+      // Update visual for read (LRU update)
+      yield* this.animateLineUpdate(setIndex, wayIdx, line);
 
       const readResponse: ReadResponse = {
         type: "read",
@@ -680,12 +979,10 @@ export class Cache extends Rect {
       responseContent = readResponse;
       const valHex = formatMultiByteValue(value, size);
       responseDisplay = `RD${sizeSuffix}=${valHex}`;
-      this.labelRef().text(`GOT: ${valHex}`);
+      endLabel = `GOT: ${valHex}`;
     }
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.5);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(endLabel);
 
     return {
       id: "",
@@ -747,30 +1044,31 @@ export class Cache extends Rect {
     const { tag, setIndex, offset } = this.parseAddress(safeAddr);
     const sizeSuffix = getSizeSuffix(size ?? 0);
 
-    this.labelRef().text("ACCESS...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    yield* this.animateRequestStart(safeAddr, "ACCESS...");
 
-    const wayIdx = this.findLine(setIndex, tag);
+    let wayIdx = this.findLine(setIndex, tag);
     let line: CacheLine;
 
     if (wayIdx >= 0) {
-      this.labelRef().text("HIT");
+      yield* this.animateHit(setIndex, wayIdx);
       line = this.cacheData[setIndex][wayIdx];
       this.updateReplaceState(line);
     } else {
-      this.labelRef().text("MISS");
-      yield* waitFor(0.3);
-      this.labelRef().text("FETCH...");
+      yield* this.animateMiss();
       line = yield* this.fetchLine(setIndex, tag);
+      wayIdx = this.findLine(setIndex, tag);
     }
 
     let responseContent: ResponsePacket;
     let responseDisplay = "";
+    let endLabel = "";
 
     if (isWriteRequest(content)) {
       const value = content.value;
       this.writeBytesToLine(line, offset, value, byteCount);
       line.dirty = true;
+
+      yield* this.animateLineUpdate(setIndex, wayIdx, line);
 
       const writeResponse: WriteResponse = {
         type: "write",
@@ -780,9 +1078,11 @@ export class Cache extends Rect {
       };
       responseContent = writeResponse;
       responseDisplay = `WR${sizeSuffix} OK`;
-      this.labelRef().text("WROTE");
+      endLabel = "WROTE";
     } else {
       const value = this.readBytesFromLine(line, offset, byteCount);
+
+      yield* this.animateLineUpdate(setIndex, wayIdx, line);
 
       const readResponse: ReadResponse = {
         type: "read",
@@ -793,12 +1093,10 @@ export class Cache extends Rect {
       responseContent = readResponse;
       const valHex = formatMultiByteValue(value, size ?? 0);
       responseDisplay = `RD${sizeSuffix}=${valHex}`;
-      this.labelRef().text(`GOT: ${valHex}`);
+      endLabel = `GOT: ${valHex}`;
     }
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(endLabel);
 
     return {
       id: payload.id,
@@ -818,30 +1116,26 @@ export class Cache extends Rect {
     const safeAddr = addr & 0xff;
     const { tag, setIndex } = this.parseAddress(safeAddr);
 
-    this.labelRef().text("LINE ACCESS...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    yield* this.animateRequestStart(safeAddr, "LINE ACCESS...");
 
     const wayIdx = this.findLine(setIndex, tag);
     let line: CacheLine;
 
     if (wayIdx >= 0) {
-      this.labelRef().text("LINE HIT");
+      yield* this.animateHit(setIndex, wayIdx);
       line = this.cacheData[setIndex][wayIdx];
       this.updateReplaceState(line);
+      yield* this.animateLineUpdate(setIndex, wayIdx, line);
     } else {
-      this.labelRef().text("LINE MISS");
-      yield* waitFor(0.3);
-      this.labelRef().text("FETCH LINE...");
+      yield* this.animateMiss();
       line = yield* this.fetchLine(setIndex, tag);
+      // fetchLine handles visual update
     }
 
     const lineData = line.data;
     const dataHex = formatMultiByteValue(lineData, Math.log2(lineSize));
-    this.labelRef().text(`LINE=${dataHex}`);
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    yield* this.animateRequestEnd(`LINE=${dataHex}`);
 
     const response: LineReadResponse = {
       type: "line_read",
@@ -868,32 +1162,28 @@ export class Cache extends Rect {
     const safeAddr = addr & 0xff;
     const { tag, setIndex } = this.parseAddress(safeAddr);
 
-    this.labelRef().text("LINE WRITE...");
-    yield* this.containerRef().scale(1.03, 0.2);
+    yield* this.animateRequestStart(safeAddr, "LINE WRITE...");
 
-    const wayIdx = this.findLine(setIndex, tag);
+    let wayIdx = this.findLine(setIndex, tag);
     let line: CacheLine;
 
     if (wayIdx >= 0) {
-      this.labelRef().text("LINE HIT");
+      yield* this.animateHit(setIndex, wayIdx);
       line = this.cacheData[setIndex][wayIdx];
       this.updateReplaceState(line);
     } else {
-      this.labelRef().text("LINE MISS");
-      yield* waitFor(0.3);
-      this.labelRef().text("ALLOCATE LINE...");
+      yield* this.animateMiss();
       line = yield* this.fetchLine(setIndex, tag);
+      wayIdx = this.findLine(setIndex, tag);
     }
 
     line.data = applyWriteMask(line.data, data, writeMask, lineSize);
     line.dirty = true;
 
-    const dataHex = formatMultiByteValue(line.data, Math.log2(lineSize));
-    this.labelRef().text(`LINE=${dataHex}`);
+    yield* this.animateLineUpdate(setIndex, wayIdx, line);
 
-    yield* this.containerRef().scale(1.0, 0.2);
-    yield* waitFor(0.3);
-    this.labelRef().text("IDLE");
+    const dataHex = formatMultiByteValue(line.data, Math.log2(lineSize));
+    yield* this.animateRequestEnd(`LINE=${dataHex}`);
 
     const response: LineWriteResponse = {
       type: "line_write",

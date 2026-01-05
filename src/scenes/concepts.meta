@@ -1,5 +1,42 @@
 {
   "version": 0,
-  "timeEvents": [],
-  "seed": 416279018
+  "timeEvents": [
+    {
+      "name": "Intro read miss done",
+      "targetTime": 16.680972540315082
+    },
+    {
+      "name": "Intro read hit done",
+      "targetTime": 23.940745788103392
+    },
+    {
+      "name": "Intro cacheline done",
+      "targetTime": 40.609206367259084
+    },
+    {
+      "name": "Intro write miss done",
+      "targetTime": 52.76463594936369
+    },
+    {
+      "name": "Intro write hit done",
+      "targetTime": 59.76897961504738
+    },
+    {
+      "name": "Intro write back done",
+      "targetTime": 77.03092469567753
+    },
+    {
+      "name": "Intro cacheline invalidation done",
+      "targetTime": 101.16238205095534
+    },
+    {
+      "name": "Intro cacheline clean done",
+      "targetTime": 124.37568339857083
+    },
+    {
+      "name": "Intro cacheline flush done",
+      "targetTime": 153.07645708316278
+    }
+  ],
+  "seed": 2167377006
 }

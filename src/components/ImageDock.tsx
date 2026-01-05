@@ -1,5 +1,5 @@
-import { Layout, Img, Spline, LayoutProps } from "@motion-canvas/2d";
-import { all, waitFor } from "@motion-canvas/core/lib/flow";
+import { Layout, Img, Spline, Rect, LayoutProps } from "@motion-canvas/2d";
+import { all, waitFor, chain } from "@motion-canvas/core/lib/flow";
 import {
   createRef,
   map,
@@ -8,11 +8,11 @@ import {
   easeOutBack,
   easeInBack,
   easeInOutCubic,
+  easeOutCubic,
 } from "@motion-canvas/core";
 
 const DOCKER_SCALE = 0.4;
-const FOCUS_SCALE = 1.65;
-const DOCK_RANGE = [0.45, 0.55];
+const FOCUS_SCALE = 1.0;
 const ROTATION_RANGE = [-45, 45];
 
 function getRotationByT(t: number) {
@@ -38,17 +38,30 @@ function getDistributionPoints(
 
 export interface ImageDockProps extends LayoutProps {
   images: string[];
+  rangeScale: number;
+}
+
+interface ImageContainer {
+  layout: Reference<Layout>;
+  img: Reference<Img>;
+  overlay: Reference<Rect>;
 }
 
 export class ImageDock extends Layout {
   private readonly spline = createRef<Spline>();
-  private readonly imageRefs: Reference<Img>[] = [];
+  private readonly containers: ImageContainer[] = [];
   private readonly imageUrls: string[];
+  private readonly rangeScale: number;
 
   constructor(props: ImageDockProps) {
     super(props);
     this.imageUrls = props.images;
-    this.imageRefs = this.imageUrls.map(() => createRef<Img>());
+    this.rangeScale = props.rangeScale;
+    this.containers = this.imageUrls.map(() => ({
+      layout: createRef<Layout>(),
+      img: createRef<Img>(),
+      overlay: createRef<Rect>(),
+    }));
 
     this.add(
       <>
@@ -65,12 +78,22 @@ export class ImageDock extends Layout {
         />
         <Layout>
           {this.imageUrls.map((src, index) => (
-            <Img
-              key={`${index}`}
-              ref={this.imageRefs[index]}
-              src={src}
+            <Layout
+              key={`container-${index}`}
+              ref={this.containers[index].layout}
               scale={0}
-            />
+            >
+              <Img ref={this.containers[index].img} src={src} />
+              <Rect
+                ref={this.containers[index].overlay}
+                fill="black"
+                opacity={0}
+                size={() => {
+                  const img = this.containers[index].img();
+                  return [img.width(), img.height()];
+                }}
+              />
+            </Layout>
           ))}
         </Layout>
       </>,
@@ -79,13 +102,13 @@ export class ImageDock extends Layout {
 
   public *intro() {
     const targetPoints = getDistributionPoints(
-      this.imageRefs.length,
-      DOCK_RANGE[0],
-      DOCK_RANGE[1],
+      this.containers.length,
+      0.5 - this.rangeScale,
+      0.5 + this.rangeScale,
     );
 
     yield* all(
-      ...this.imageRefs.map((ref, index) => {
+      ...this.containers.map((container, index) => {
         const targetT = targetPoints[index];
         return (function* (that) {
           yield* waitFor(index * 0.2);
@@ -94,10 +117,10 @@ export class ImageDock extends Layout {
             const currentT = map(0, targetT, eased);
             const transform = getCurveTransform(that.spline(), currentT);
 
-            ref().position(transform.position);
-            ref().rotation(transform.rotation);
-            ref().scale(map(0, DOCKER_SCALE, eased));
-            ref().opacity(1);
+            container.layout().position(transform.position);
+            container.layout().rotation(transform.rotation);
+            container.layout().scale(map(0, DOCKER_SCALE, eased));
+            container.layout().opacity(1);
           });
         })(this);
       }),
@@ -105,33 +128,62 @@ export class ImageDock extends Layout {
   }
 
   public *focus(focusIndex: number, duration: number = 1.6) {
-    const focusRef = this.imageRefs[focusIndex];
-    const otherRefs = this.imageRefs.filter((_, i) => i !== focusIndex);
+    const focusContainer = this.containers[focusIndex];
+    const otherContainers = this.containers.filter((_, i) => i !== focusIndex);
     const newDockPoints = getDistributionPoints(
-      otherRefs.length,
-      DOCK_RANGE[0],
-      DOCK_RANGE[1],
+      otherContainers.length,
+      0.5 - this.rangeScale,
+      0.5 + this.rangeScale,
     );
+    const currentPos = focusContainer.layout().position();
 
-    focusRef().zIndex(100);
+    const overshootY = -800;
+    const shrinkScale = DOCKER_SCALE * 0.7;
+
+    const phase1Duration = duration * 0.35;
+    const phase2Duration = duration * 0.65;
 
     yield* all(
-      focusRef().position([0, 0], duration, easeInOutCubic),
-      focusRef().rotation(0, duration, easeInOutCubic),
-      focusRef().scale(FOCUS_SCALE, duration, easeInOutCubic),
-      focusRef().opacity(1, duration, easeInOutCubic),
+      chain(
+        all(
+          focusContainer
+            .layout()
+            .position(
+              [currentPos.x, currentPos.y + overshootY],
+              phase1Duration,
+              easeOutCubic,
+            ),
+          focusContainer
+            .layout()
+            .scale(shrinkScale, phase1Duration, easeOutCubic),
+          focusContainer.layout().rotation(0, phase1Duration, easeOutCubic),
+        ),
+        (function* () {
+          focusContainer.layout().zIndex(100);
+        })(),
+        all(
+          focusContainer.layout().position([0, 0], phase2Duration, easeOutBack),
+          focusContainer
+            .layout()
+            .scale(FOCUS_SCALE, phase2Duration, easeOutBack),
+        ),
+      ),
 
-      ...otherRefs.map((ref, i) => {
+      ...otherContainers.map((container, i) => {
         const targetT = newDockPoints[i];
         const transform = getCurveTransform(this.spline(), targetT);
 
-        ref().zIndex(i);
+        container.layout().zIndex(i);
 
         return all(
-          ref().position(transform.position, duration, easeInOutCubic),
-          ref().rotation(transform.rotation, duration, easeInOutCubic),
-          ref().opacity(0.5, duration, easeInOutCubic),
-          ref().scale(DOCKER_SCALE, duration, easeInOutCubic),
+          container
+            .layout()
+            .position(transform.position, duration, easeInOutCubic),
+          container
+            .layout()
+            .rotation(transform.rotation, duration, easeInOutCubic),
+          container.layout().scale(DOCKER_SCALE, duration, easeInOutCubic),
+          container.overlay().opacity(0.5, duration, easeInOutCubic),
         );
       }),
     );
@@ -139,41 +191,111 @@ export class ImageDock extends Layout {
 
   public *unfocus(duration: number = 1.6) {
     const targetPoints = getDistributionPoints(
-      this.imageRefs.length,
-      DOCK_RANGE[0],
-      DOCK_RANGE[1],
+      this.containers.length,
+      0.5 - this.rangeScale,
+      0.5 + this.rangeScale,
     );
 
-    yield* all(
-      ...this.imageRefs.map((ref, index) => {
-        const targetT = targetPoints[index];
-        const transform = getCurveTransform(this.spline(), targetT);
-
-        ref().zIndex(index);
-
-        return all(
-          ref().position(transform.position, duration, easeInOutCubic),
-          ref().rotation(transform.rotation, duration, easeInOutCubic),
-          ref().scale(DOCKER_SCALE, duration, easeInOutCubic),
-          ref().opacity(1, duration, easeInOutCubic),
-        );
-      }),
+    const focusedIndex = this.containers.findIndex(
+      (container) => container.layout().zIndex() === 100,
     );
+
+    const overshootY = 0;
+    const shrinkScale = DOCKER_SCALE * 0.7;
+
+    const phase1Duration = duration * 0.35;
+    const phase2Duration = duration * 0.65;
+
+    if (focusedIndex !== -1) {
+      const focusedContainer = this.containers[focusedIndex];
+      const otherContainers = this.containers.filter(
+        (_, i) => i !== focusedIndex,
+      );
+
+      const targetT = targetPoints[focusedIndex];
+      const targetTransform = getCurveTransform(this.spline(), targetT);
+
+      yield* all(
+        chain(
+          all(
+            focusedContainer
+              .layout()
+              .position([0, overshootY], phase1Duration, easeOutCubic),
+            focusedContainer
+              .layout()
+              .scale(shrinkScale, phase1Duration, easeOutCubic),
+          ),
+          (function* () {
+            focusedContainer.layout().zIndex(focusedIndex);
+          })(),
+          all(
+            focusedContainer
+              .layout()
+              .position(targetTransform.position, phase2Duration, easeOutBack),
+            focusedContainer
+              .layout()
+              .rotation(targetTransform.rotation, phase2Duration, easeOutBack),
+            focusedContainer
+              .layout()
+              .scale(DOCKER_SCALE, phase2Duration, easeOutBack),
+          ),
+        ),
+
+        ...otherContainers.map((container, i) => {
+          const originalIndex = this.containers.indexOf(container);
+          const targetT = targetPoints[originalIndex];
+          const transform = getCurveTransform(this.spline(), targetT);
+
+          container.layout().zIndex(originalIndex);
+
+          return all(
+            container
+              .layout()
+              .position(transform.position, duration, easeInOutCubic),
+            container
+              .layout()
+              .rotation(transform.rotation, duration, easeInOutCubic),
+            container.layout().scale(DOCKER_SCALE, duration, easeInOutCubic),
+            container.overlay().opacity(0, duration, easeInOutCubic),
+          );
+        }),
+      );
+    } else {
+      yield* all(
+        ...this.containers.map((container, index) => {
+          const targetT = targetPoints[index];
+          const transform = getCurveTransform(this.spline(), targetT);
+
+          container.layout().zIndex(index);
+
+          return all(
+            container
+              .layout()
+              .position(transform.position, duration, easeInOutCubic),
+            container
+              .layout()
+              .rotation(transform.rotation, duration, easeInOutCubic),
+            container.layout().scale(DOCKER_SCALE, duration, easeInOutCubic),
+            container.overlay().opacity(0, duration, easeInOutCubic),
+          );
+        }),
+      );
+    }
   }
 
   public *exit() {
     const startPoints = getDistributionPoints(
-      this.imageRefs.length,
-      DOCK_RANGE[0],
-      DOCK_RANGE[1],
+      this.containers.length,
+      0.5 - this.rangeScale,
+      0.5 + this.rangeScale,
     );
 
     yield* all(
-      ...this.imageRefs.map((ref, index) => {
+      ...this.containers.map((container, index) => {
         const startT = startPoints[index];
 
         return (function* (that) {
-          yield* waitFor((that.imageRefs.length - 1 - index) * 0.2);
+          yield* waitFor((that.containers.length - 1 - index) * 0.2);
 
           yield* tween(1.6, (value) => {
             const eased = easeInBack(value);
@@ -181,9 +303,9 @@ export class ImageDock extends Layout {
             const currentT = map(startT, 0, eased);
             const transform = getCurveTransform(that.spline(), currentT);
 
-            ref().position(transform.position);
-            ref().rotation(transform.rotation);
-            ref().scale(map(DOCKER_SCALE, 0, eased));
+            container.layout().position(transform.position);
+            container.layout().rotation(transform.rotation);
+            container.layout().scale(map(DOCKER_SCALE, 0, eased));
           });
         })(this);
       }),

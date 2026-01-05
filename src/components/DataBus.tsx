@@ -121,7 +121,7 @@ export class DataBus extends Layout {
 
     this.add(
       <>
-        <Layout direction={"column"} alignItems={"center"}>
+        <Layout direction={"column"} alignItems={"center"} clip>
           <Txt
             text={this.requestLabel}
             fill={this.requestLabelFill}
@@ -158,7 +158,7 @@ export class DataBus extends Layout {
             />
           </Layout>
         </Layout>
-        <Layout direction={"column"} alignItems={"center"}>
+        <Layout direction={"column"} alignItems={"center"} clip>
           <Layout width={() => this.busWidth()} height={() => this.busHeight()}>
             <Rect
               ref={this.responseTrack}
