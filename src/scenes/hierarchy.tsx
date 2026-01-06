@@ -12,7 +12,7 @@ import { overlayTransition } from "../transitions/OverlayTransition";
 import { DataBus } from "../components/DataBus";
 import { CpuMaster } from "../components/CpuMaster";
 import { MemSlave } from "../components/MemSlave";
-import { Cache } from "../components/Cache";
+import { Cache } from "../components/cache/Cache";
 import { OrbitalBall } from "../components/OrbitalBall";
 
 import ballsShader from "../../assets/shaders/balls.glsl";
@@ -160,9 +160,9 @@ export default makeScene2D(function* (view) {
   yield* overlayTransition("Chapter One - Memory hierarchy");
 
   yield* all(
-    ballA().rotate(2.5, 20),
-    ballB().rotate(2.5, 20),
-    ballC().rotate(2.5, 20),
+    ballA().rotate(2, 20),
+    ballB().rotate(2, 20),
+    ballC().rotate(2, 20),
     sequence(
       4,
       all(ballA().flyIn(1.5), ballB().flyIn(1.7), ballC().flyIn(1.9)),

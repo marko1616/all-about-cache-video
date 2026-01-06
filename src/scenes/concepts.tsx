@@ -15,7 +15,7 @@ import { overlayTransition } from "../transitions/OverlayTransition";
 import { DataBus } from "../components/DataBus";
 import { CpuMaster } from "../components/CpuMaster";
 import { MemSlave } from "../components/MemSlave";
-import { Cache } from "../components/Cache";
+import { Cache } from "../components/cache/Cache";
 
 export default makeScene2D(function* (view) {
   const cpu = createRef<CpuMaster>();

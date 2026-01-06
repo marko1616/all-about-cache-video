@@ -10,6 +10,11 @@ export interface CacheLine {
 }
 
 /**
+ * Available fields that can be highlighted in a cache line.
+ */
+export type CacheField = "valid" | "dirty" | "tag" | "data";
+
+/**
  * Replacement policy function type.
  * Takes array of cache lines (ways) in a set, returns index to replace.
  */

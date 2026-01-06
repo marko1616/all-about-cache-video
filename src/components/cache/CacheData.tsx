@@ -14,9 +14,10 @@ import {
   createSignal,
   SignalValue,
 } from "@motion-canvas/core";
-import { CacheLine } from "../schemes/Cache";
+import { CacheLine } from "../../schemes/Cache";
 import { CacheLineView } from "./CacheLineView";
 import { CacheSetView } from "./CacheSetView";
+import { CacheField } from "../../schemes/Cache";
 
 /**
  * Props for the CacheData container.
@@ -51,6 +52,8 @@ export class CacheData extends Rect {
   @signal()
   private readonly containerHeight: SimpleSignal<number>;
 
+  private focusedSetIdx: number = 0;
+
   constructor(props: CacheDataProps) {
     super({
       layout: false,
@@ -77,7 +80,12 @@ export class CacheData extends Rect {
         height={() => this.height() * 0.85}
         layout
       >
-        <Txt text="Storage Space" fill="#d7d7d7" fontSize={32} fontWeight={700} />
+        <Txt
+          text="Storage Space"
+          fill="#d7d7d7"
+          fontSize={32}
+          fontWeight={700}
+        />
         <Rect
           stroke="#d7d7d7"
           grow={1}
@@ -150,6 +158,7 @@ export class CacheData extends Rect {
    * Other sets retreat to the Stack Area (Left).
    */
   public *focusSet(setIndex: number) {
+    this.focusedSetIdx = setIndex;
     yield* all(
       ...this.setRefs.map((setRef, idx) => {
         const view = setRef();
@@ -252,5 +261,51 @@ export class CacheData extends Rect {
       view.scale(1);
       view.zIndex(s);
     });
+  }
+
+  /**
+   * Performs the Check Hit animation on all ways in focused set simultaneously.
+   *
+   * @param lookupTag The tag from the memory request to compare against.
+   */
+  public *checkHit(lookupTag: number) {
+    yield* this.setRefs[this.focusedSetIdx]().checkHit(lookupTag);
+  }
+
+  /**
+   * Introduces a specific cache field by scaling it up across all cache lines.
+   * This animation highlights a particular field (valid, dirty, tag, or data)
+   * to draw attention to it for educational purposes.
+   *
+   * Only effective in detailed mode.
+   *
+   * @param field - The cache field to highlight
+   * @param scale - The scale factor to apply (default: 1.3)
+   * @param duration - Animation duration in seconds (default: 0.4)
+   */
+  public *introCacheField(
+    field: CacheField,
+    scale: number = 1.3,
+    duration: number = 0.4,
+  ) {
+    yield* all(
+      ...this.setRefs.map((setRef) =>
+        setRef().introCacheField(field, scale, duration),
+      ),
+    );
+  }
+
+  /**
+   * Resets the field highlight for all cache lines across all sets.
+   *
+   * @param field - The cache field to reset
+   * @param duration - Animation duration in seconds (default: 0.3)
+   */
+  public *resetFieldIntro(field: CacheField, duration: number = 0.3) {
+    yield* all(
+      ...this.setRefs.map((setRef) =>
+        setRef().resetFieldIntro(field, duration),
+      ),
+    );
   }
 }
