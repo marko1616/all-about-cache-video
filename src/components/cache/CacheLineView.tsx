@@ -384,4 +384,3 @@ export class CacheLineView extends Rect {
     yield* container.scale(1, duration);
   }
 }
-  

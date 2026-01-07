@@ -30,12 +30,12 @@ export default makeScene2D(function* (view) {
   yield* stream().flyIn();
   yield* stream().flyOut();
 
-  const ArticleImages = [slaveMemPaperPage2, slaveMemPaperPage1];
+  const articleImages = [slaveMemPaperPage2, slaveMemPaperPage1];
 
   const dockRef = createRef<ImageDock>();
 
   view.add(
-    <ImageDock ref={dockRef} images={ArticleImages} rangeScale={0.05} />,
+    <ImageDock ref={dockRef} images={articleImages} rangeScale={0.05} />,
   );
 
   yield* dockRef().intro();

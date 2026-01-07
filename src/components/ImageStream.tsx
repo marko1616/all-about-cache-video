@@ -87,7 +87,7 @@ export class ImageStream extends Node {
           <Rect
             ref={rectRef}
             layout
-            padding={0}
+            padding={10}
             clip
             radius={15}
             lineWidth={6}
@@ -157,17 +157,9 @@ export class ImageStream extends Node {
 
         return all(
           tween(this.flyDuration, (value) => {
-            // Using easeInExpo for flyOut often looks better (accelerating out),
-            // but easeOutExpo matches the flyIn style.
             const eased = easeOutExpo(value);
-
-            // Scale down to 0
             r.scale(map(startScale, 0, eased));
-
-            // Fade out
             r.opacity(map(1, 0, eased));
-
-            // Add a small rotation effect on exit (e.g., -20 degrees relative to current)
             r.rotation(
               map(item.targetRotation, item.targetRotation - 20, eased),
             );

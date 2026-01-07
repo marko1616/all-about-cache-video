@@ -1,22 +1,17 @@
-import {
-  Code,
-  LezerHighlighter,
-  Layout,
-  makeScene2D,
-  lines,
-  Latex,
-  Txt,
-  Rect,
-} from "@motion-canvas/2d";
+import { Code, Layout, makeScene2D, Rect } from "@motion-canvas/2d";
 import { all, delay, waitFor } from "@motion-canvas/core";
 import { createRef } from "@motion-canvas/core";
-import { parser as cppParser } from "@lezer/cpp";
 
 import { overlayTransition } from "../transitions/OverlayTransition";
 import { DataBus } from "../components/DataBus";
 import { CpuMaster } from "../components/CpuMaster";
 import { MemSlave } from "../components/MemSlave";
 import { Cache } from "../components/cache/Cache";
+import { ImageStream } from "../components/ImageStream";
+
+import offsetIntro0Svg from "../../assets/images/offsetIntro0.svg";
+import offsetIntro1Svg from "../../assets/images/offsetIntro1.svg";
+import offsetIntro2Svg from "../../assets/images/offsetIntro2.svg";
 
 export default makeScene2D(function* (view) {
   const cpu = createRef<CpuMaster>();
@@ -176,8 +171,66 @@ export default makeScene2D(function* (view) {
   cpu().enableCacheLineMode(2);
   yield* all(cacheOverlay().height(0, 0.6), cacheOverlay().y(1030, 0.6));
 
+  const stream0 = createRef<ImageStream>();
+  view.add(
+    <ImageStream
+      ref={stream0}
+      images={[offsetIntro0Svg]}
+      flyDuration={2.4}
+      interval={0.16}
+      imageScale={4}
+      rectFill={"#fff"}
+      borderColor={"#fff"}
+    />,
+  );
+
+  const stream1 = createRef<ImageStream>();
+  view.add(
+    <ImageStream
+      ref={stream1}
+      images={[offsetIntro1Svg]}
+      flyDuration={2.4}
+      interval={0.16}
+      imageScale={4}
+      rectFill={"#fff"}
+      borderColor={"#fff"}
+    />,
+  );
+
+  const stream2 = createRef<ImageStream>();
+  view.add(
+    <ImageStream
+      ref={stream2}
+      images={[offsetIntro2Svg]}
+      flyDuration={2.4}
+      interval={0.16}
+      imageScale={4}
+      rectFill={"#fff"}
+      borderColor={"#fff"}
+    />,
+  );
+
+  yield* stream0().flyIn();
+  yield* waitFor(1);
+  yield* stream0().flyOut();
+
   yield* cpu().writeByte(0x11, 0x1);
   yield* waitFor(1);
 
-  yield* waitFor(10);
+  yield* cpu().readByte(0x11);
+  yield* waitFor(1);
+
+  yield* stream1().flyIn();
+  yield* waitFor(1);
+  yield* stream1().flyOut();
+
+  yield* cpu().readWord(0x10);
+  yield* waitFor(1);
+
+  yield* stream2().flyIn();
+  yield* waitFor(1);
+  yield* stream2().flyOut();
+
+  yield* cpu().readWord(0x11);
+  yield* waitFor(1);
 });

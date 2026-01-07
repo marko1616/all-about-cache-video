@@ -194,11 +194,7 @@ export class CacheLogic {
   /**
    * Write a single byte to a cache line at the given offset.
    */
-  public writeByteToLine(
-    line: CacheLine,
-    offset: number,
-    value: number,
-  ): void {
+  public writeByteToLine(line: CacheLine, offset: number, value: number): void {
     const shift = BigInt(offset * 8);
     const mask = BigInt(0xff) << shift;
     line.data = (line.data & ~mask) | (BigInt(value & 0xff) << shift);

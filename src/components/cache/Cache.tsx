@@ -172,11 +172,7 @@ export class Cache extends Rect {
   /**
    * Build the UI structure for the cache component.
    */
-  private buildUI(
-    offsetBits: number,
-    setBits: number,
-    numWays: number,
-  ): void {
+  private buildUI(offsetBits: number, setBits: number, numWays: number): void {
     const numSets = this.logic.getNumSets();
     const lineSize = this.logic.getLineSize();
     const tagBits = this.logic.getTagBits();
@@ -328,6 +324,27 @@ export class Cache extends Rect {
   }
 
   /**
+   * Immediately switch to detailed visualization mode without animation.
+   * Useful for initial setup or when animation is not needed.
+   */
+  public setDetailedImmediate(width: number, height: number): void {
+    this.isDetailedMode = true;
+    this.cacheDataRef().setInitialState(this.logic.getCacheData());
+
+    // Set final size
+    this.size([width, height]);
+
+    // Set overlay to hidden state
+    this.overlayRef().height(0);
+    this.overlayRef().y(height / 2 + 10);
+
+    // Set visual state for detailed mode
+    this.fill("#00000000");
+    this.containerRef().opacity(0);
+    this.detailContainerRef().opacity(1);
+  }
+
+  /**
    * Transform back to simple visualization mode.
    */
   public *transformSimple(
@@ -357,6 +374,27 @@ export class Cache extends Rect {
       this.overlayRef().height(0, 1.0),
       this.overlayRef().y(height / 2 + 10, 1.0),
     );
+  }
+
+  /**
+   * Immediately switch to simple visualization mode without animation.
+   * Useful for initial setup or when animation is not needed.
+   */
+  public setSimpleImmediate(width: number, height: number): void {
+    this.isDetailedMode = false;
+
+    // Set final size
+    this.size([width, height]);
+
+    // Set overlay to hidden state
+    this.overlayRef().height(0);
+    this.overlayRef().y(height / 2 + 10);
+
+    // Set visual state for simple mode
+    this.fill(this.backgroundFill);
+    this.lineWidth(20);
+    this.detailContainerRef().opacity(0);
+    this.containerRef().opacity(1);
   }
 
   // ==========================================================================
@@ -418,5 +456,30 @@ export class Cache extends Rect {
     if (animator.resetFieldIntro) {
       yield* animator.resetFieldIntro(field, duration);
     }
+  }
+
+  /**
+   * Animate swapping the Tag and Set fields to demonstrate high-order set indexing.
+   * This animation visually exchanges the positions of Tag and Set sections,
+   * illustrating why placing Set bits in the high-order position violates
+   * spatial locality principles in cache design.
+   *
+   * @param duration - The total duration of the swap animation in seconds.
+   * @returns A generator that yields the animation sequence.
+   */
+  public *animateSwapTagAndSet(duration: number = 0.8) {
+    yield* this.addrDecoderRef().animateSwapTagAndSet(duration);
+  }
+
+  /**
+   * Animate restoring the Tag and Set fields to their original positions.
+   * This reverses the swap animation, returning the decoder to the standard
+   * cache addressing scheme where Set bits are in the middle position.
+   *
+   * @param duration - The total duration of the restore animation in seconds.
+   * @returns A generator that yields the animation sequence.
+   */
+  public *animateRestoreTagAndSet(duration: number = 0.8) {
+    yield* this.addrDecoderRef().animateRestoreTagAndSet(duration);
   }
 }

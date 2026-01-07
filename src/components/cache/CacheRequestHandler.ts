@@ -104,7 +104,9 @@ export class CacheRequestHandler {
     }
 
     // Handle regular read/write operations
-    return yield* this.handleReadWrite(payload as Payload<ReadRequest | WriteRequest>);
+    return yield* this.handleReadWrite(
+      payload as Payload<ReadRequest | WriteRequest>,
+    );
   }
 
   /**

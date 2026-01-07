@@ -458,4 +458,55 @@ export class MemSlave extends Rect {
 
     return responsePayload;
   }
+
+  /** Per-address base fill override used in Detailed Mode. Null means use backgroundFill. */
+  private readonly addressFillOverrides: (SignalValue<string> | null)[] =
+    new Array(256).fill(null);
+
+  /**
+   * Get the base fill for a row (override if present; otherwise backgroundFill).
+   * This is used to restore row colors after transient highlights.
+   */
+  private getRowBaseFill(
+    addr: number,
+  ): SignalValue<string> | ColorSignal<this> {
+    return this.addressFillOverrides[addr] ?? this.backgroundFill;
+  }
+
+  /**
+   * Persistently sets the base color of a specific memory row (0-255).
+   * The row will temporarily flash with highlightFill during transactions,
+   * then return to this base color afterwards.
+   *
+   * @param addr - Address index in [0, 255].
+   * @param color - CSS color string (e.g., "#ff00aa", "hsl(...)", "rgba(...)").
+   * @param duration - Transition duration in seconds.
+   */
+  public *setAddressColor(
+    addr: number,
+    color: SignalValue<string>,
+    duration: number = 0.25,
+  ): ThreadGenerator {
+    if (this.simpleOnly || addr < 0 || addr >= 256) return;
+
+    this.addressFillOverrides[addr] = color;
+    yield* this.rowRects[addr].fill(color, duration);
+  }
+
+  /**
+   * Clears the persistent base color override of a specific row,
+   * restoring it to backgroundFill.
+   *
+   * @param addr - Address index in [0, 255].
+   * @param duration - Transition duration in seconds.
+   */
+  public *clearAddressColor(
+    addr: number,
+    duration: number = 0.25,
+  ): ThreadGenerator {
+    if (this.simpleOnly || addr < 0 || addr >= 256) return;
+
+    this.addressFillOverrides[addr] = null;
+    yield* this.rowRects[addr].fill(this.backgroundFill, duration);
+  }
 }
